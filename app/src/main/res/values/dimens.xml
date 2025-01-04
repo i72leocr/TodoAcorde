@@ -1,0 +1,5 @@
+<resources>
+    <!-- Define the dimensions for the dialog -->
+    <dimen name="dialog_width">150dp</dimen>
+    <dimen name="dialog_height">150dp</dimen>
+</resources>

@@ -1,0 +1,18 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_songs"
+        android:icon="@android:drawable/ic_media_play"
+        android:title="Songs" />
+    <item
+        android:id="@+id/nav_metronome"
+        android:icon="@android:drawable/ic_menu_manage"
+        android:title="Metronome" />
+    <item
+        android:id="@+id/nav_tuner"
+        android:icon="@android:drawable/ic_menu_compass"
+        android:title="Tuner" />
+    <item
+        android:id="@+id/nav_chord"
+        android:icon="@android:drawable/ic_menu_agenda"
+        android:title="Chords" />
+</menu>

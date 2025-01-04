@@ -1,0 +1,172 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <ImageButton
+        android:id="@+id/back_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:src="@android:drawable/ic_menu_revert"
+        android:contentDescription="Back" />
+
+    <!-- Information Button at the top right corner -->
+    <ImageButton
+        android:id="@+id/btnInfo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="10dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="information"
+        android:src="@android:drawable/ic_dialog_info"
+        app:tint="@color/custom_color" />
+
+    <!-- Selector de Modo (Aleatorio/Orden) usando RadioGroup -->
+    <RadioGroup
+        android:id="@+id/radioGroupMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/btnInfo"
+        android:layout_marginTop="30dp">
+
+        <RadioButton
+            android:id="@+id/radioOrder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Orden"
+            android:checked="true" />
+
+        <RadioButton
+            android:id="@+id/radioReal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Modo Real" />
+
+        <RadioButton
+            android:id="@+id/radioRandom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Aleatorio"
+            android:layout_marginStart="16dp" />
+    </RadioGroup>
+
+    <!-- Visualización del Acorde Actual -->
+    <TextView
+        android:id="@+id/tvCurrentChord"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="36sp"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/radioGroupMode"
+        android:layout_marginTop="40dp" />
+
+    <!-- Detected Chord (small, next to the current chord) -->
+    <TextView
+        android:id="@+id/tvDetectedChord"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="14sp"
+        android:layout_toRightOf="@id/tvCurrentChord"
+        android:layout_alignBaseline="@id/tvCurrentChord"
+        android:layout_marginStart="8dp" />
+
+    <!-- Custom Grid with Points View -->
+    <com.tuguitar.todoacorde.GridWithPointsView
+        android:id="@+id/gridWithPointsView"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_below="@id/tvCurrentChord"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="30dp"
+        android:background="@android:color/white" />
+
+    <!-- Indicador de Correcto/Fallo -->
+    <TextView
+        android:id="@+id/tvFeedback"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="24sp"
+        android:layout_below="@id/gridWithPointsView"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp" />
+
+    <!-- Circular Progress Bar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_below="@id/tvFeedback"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="30dp" />
+
+    <!-- Visualización del Puntaje -->
+    <TextView
+        android:id="@+id/tvScore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/progressBar"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="100dp"
+        android:textSize="18sp" />
+
+    <!-- Botón para Empezar/Terminar -->
+    <Button
+        android:id="@+id/btnStartStopPractice"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tvScore"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="80dp"
+        android:layout_marginBottom="16dp"
+        android:padding="10dp"
+        android:text="Terminar"
+        android:textSize="20sp" />
+
+    <!-- Selector de velocidad (Aparece sólo en modo Real) -->
+    <RadioGroup
+        android:id="@+id/radioGroupSpeed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btnStartStopPractice"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="30dp"
+        android:visibility="gone"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/radioSpeed1x"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1x" />
+
+        <RadioButton
+            android:id="@+id/radioSpeed075x"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0.75x"
+            android:layout_marginStart="16dp" />
+
+        <RadioButton
+            android:id="@+id/radioSpeed05x"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0.5x"
+            android:layout_marginStart="16dp" />
+    </RadioGroup>
+
+</RelativeLayout>

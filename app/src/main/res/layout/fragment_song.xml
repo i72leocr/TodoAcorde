@@ -1,0 +1,84 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+    <TextView
+        android:id="@+id/screen_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Lista de Canciones"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:padding="16dp"
+        android:textColor="@android:color/black" />
+
+    <!-- SearchView for song search -->
+    <SearchView
+        android:id="@+id/searchView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:queryHint="Buscar canción..." />
+
+    <!-- Filter and sort options -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="8dp">
+
+        <!-- Sort Button -->
+        <Button
+            android:id="@+id/sort_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sort by" />
+
+        <!-- Favorites Checkbox -->
+        <CheckBox
+            android:id="@+id/checkbox_favorites"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Show Favorites"
+            android:paddingStart="16dp" />
+    </LinearLayout>
+
+    <!-- ListView for songs -->
+    <ListView
+        android:id="@+id/song_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:dividerHeight="1dp" />
+
+    <!-- Pagination controls -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_horizontal">
+
+        <Button
+            android:id="@+id/prev_page_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Previous" />
+
+        <TextView
+            android:id="@+id/page_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Page 1"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp" />
+
+        <Button
+            android:id="@+id/next_page_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Next" />
+    </LinearLayout>
+</LinearLayout>

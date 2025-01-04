@@ -1,0 +1,17 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Elemento oval transparente, pero sin background adicional -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@android:color/transparent"/> <!-- Elemento transparente -->
+            <size android:width="20dp" android:height="20dp"/>
+        </shape>
+    </item>
+
+    <!-- Elemento oval de color (sin background) -->
+    <item android:right="1dp">
+        <shape android:shape="oval">
+            <solid android:color="@color/primary"/> <!-- Color primario sin fondo -->
+            <size android:width="18dp" android:height="18dp"/>
+        </shape>
+    </item>
+</layer-list>
