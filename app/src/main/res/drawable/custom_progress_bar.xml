@@ -1,67 +1,24 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <!-- Fondo gris claro con bordes redondeados -->
+    <!-- Fondo completo visible: rojo -> verde -> rojo -->
     <item android:id="@android:id/background">
-        <shape>
-            <solid android:color="#E0E0E0" />
-            <corners android:radius="5dp" /> <!-- Fondo redondeado -->
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#F44336"
+                android:centerColor="#4CAF50"
+                android:endColor="#F44336"
+                android:centerX="0.5"
+                android:angle="0"/>
+            <corners android:radius="6dp"/>
         </shape>
     </item>
 
-    <!-- Sección 1: Rojo (no afinado por mucho) -->
-    <item android:left="0dp" android:right="0dp">
-        <shape>
-            <solid android:color="#FF0000" /> <!-- Rojo -->
-            <!-- Sin corners aquí para mantener bordes rectos -->
-        </shape>
+    <!-- Capa del progreso (opcional, semitransparente para verlo encima si quieres marcar) -->
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape android:shape="rectangle">
+                <solid android:color="@android:color/transparent"/>
+                <corners android:radius="6dp"/>
+            </shape>
+        </clip>
     </item>
-
-    <!-- Sección 2: Naranja (desafinado) -->
-    <item android:left="50dp" android:right="0dp">
-        <shape>
-            <solid android:color="#FF9800" /> <!-- Naranja -->
-            <!-- Sin corners aquí para mantener bordes rectos -->
-        </shape>
-    </item>
-
-    <!-- Sección 3: Verde claro (casi afinado) -->
-    <item android:left="100dp" android:right="0dp">
-        <shape>
-            <solid android:color="#8BC34A" /> <!-- Verde claro -->
-            <!-- Sin corners aquí para mantener bordes rectos -->
-        </shape>
-    </item>
-
-    <!-- Sección 4: Verde (completamente afinado) -->
-    <item android:left="150dp" android:right="0dp">
-        <shape>
-            <solid android:color="#4CAF50" /> <!-- Verde afinado -->
-            <!-- Sin corners aquí para mantener bordes rectos -->
-        </shape>
-    </item>
-
-    <!-- Sección 5: Verde claro (casi afinado, derecha) -->
-    <item android:left="200dp" android:right="0dp">
-        <shape>
-            <solid android:color="#8BC34A" /> <!-- Verde claro -->
-            <!-- Sin corners aquí para mantener bordes rectos -->
-        </shape>
-    </item>
-
-    <!-- Sección 6: Naranja (desafinado, derecha) -->
-    <item android:left="250dp" android:right="0dp">
-        <shape>
-            <solid android:color="#FF9800" /> <!-- Naranja -->
-            <!-- Sin corners aquí para mantener bordes rectos -->
-        </shape>
-    </item>
-
-    <!-- Sección 7: Rojo (no afinado por mucho, derecha) -->
-    <item android:left="300dp" android:right="0dp">
-        <shape>
-            <solid android:color="#FF0000" /> <!-- Rojo -->
-            <!-- Sin corners aquí para mantener bordes rectos -->
-        </shape>
-    </item>
-
 </layer-list>

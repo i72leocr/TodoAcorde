@@ -7,170 +7,140 @@ import android.util.AttributeSet;
 import android.view.View;
 
 public class GridWithPointsView extends View {
-    private Paint gridPaint;
-    private Paint pointPaint;
-    private Paint thickTopLinePaint;
-    private Paint textPaint;
-    private Paint symbolPaint; // Paint for 'X' and '0' symbols
-    private Paint fingerNumberPaint; // Paint for finger numbers
-    private int[] pointPositions;
-    private String[] stringSymbols; // Array to hold 'X' and '0' symbols
-    private String[] fingerNumbers; // Array to hold finger numbers
-    private int leftNumber;
+    private final Paint gridPaint         = new Paint();
+    private final Paint thickTopLinePaint = new Paint();
+    private final Paint pointPaint        = new Paint();
+    private final Paint symbolPaint       = new Paint();
+    private final Paint fingerNumberPaint = new Paint();
+    private int frets   = 5;
 
-    public GridWithPointsView(Context context) {
-        super(context);
-        init();
+    private final float pointRadius       = 15f;  // radio de los puntos
+
+    private int[]    pointPositions = new int[]{-1, -1, -1, -1, -1, -1};
+    private String[] stringSymbols  = new String[]{"", "", "", "", "", ""};
+    private String[] fingerNumbers  = new String[]{"", "", "", "", "", ""};
+    private int      leftNumber     = 1;
+
+    public GridWithPointsView(Context ctx)                     { super(ctx); initPaints(); }
+    public GridWithPointsView(Context ctx, AttributeSet attrs) { super(ctx, attrs); initPaints(); }
+    public GridWithPointsView(Context ctx, AttributeSet attrs, int ds) {
+        super(ctx, attrs, ds); initPaints();
     }
 
-    public GridWithPointsView(Context context, AttributeSet attrs) {
-        super(context, attrs);
-        init();
-    }
+    private void initPaints() {
+        gridPaint.setColor(0xFF000000);
+        gridPaint.setStrokeWidth(4);
 
-    public GridWithPointsView(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-        init();
-    }
+        thickTopLinePaint.setColor(0xFF000000);
+        thickTopLinePaint.setStrokeWidth(12);
 
-    private void init() {
-        gridPaint = new Paint();
-        gridPaint.setColor(0xFF000000); // Black color for grid lines
-        gridPaint.setStrokeWidth(4); // Standard thickness for grid lines
+        pointPaint.setColor(0xFF000000);
+        pointPaint.setStyle(Paint.Style.FILL);
 
-        thickTopLinePaint = new Paint();
-        thickTopLinePaint.setColor(0xFF000000); // Black color for the top line
-        thickTopLinePaint.setStrokeWidth(12); // Thicker line for the topmost horizontal line
+        symbolPaint.setColor(0xFF000000);
+        symbolPaint.setTextAlign(Paint.Align.CENTER);
 
-        pointPaint = new Paint();
-        pointPaint.setColor(0xFF000000); // Black color for points
-        pointPaint.setStyle(Paint.Style.FILL); // Fill the points
-        pointPaint.setStrokeWidth(12); // Thicker points
-
-        textPaint = new Paint();
-        textPaint.setColor(0xFF000000); // Black color for text
-        textPaint.setTextSize(40); // Size of the number
-        textPaint.setTextAlign(Paint.Align.CENTER); // Center align the text for the left number
-
-        symbolPaint = new Paint();
-        symbolPaint.setColor(0xFF000000); // Black color for symbols
-        symbolPaint.setTextSize(40); // Set the initial size to be used by both 'X' and '0'
-        symbolPaint.setTextAlign(Paint.Align.CENTER); // Align symbols to the center of the string
-
-        fingerNumberPaint = new Paint();
-        fingerNumberPaint.setColor(0xFFFFFFFF); // White color for finger numbers
-        fingerNumberPaint.setTextSize(24); // Adjust size for finger numbers
-        fingerNumberPaint.setTextAlign(Paint.Align.CENTER); // Align text to the center of the point
-
-        pointPositions = new int[]{-1, -1, -1, -1, -1, -1}; // Initialize with no points
-        stringSymbols = new String[]{"", "", "", "", "", ""}; // Initialize with empty symbols
-        fingerNumbers = new String[]{"", "", "", "", "", ""}; // Initialize with empty finger numbers
-        leftNumber = 1; // Default value
+        fingerNumberPaint.setColor(0xFFFFFFFF);
+        fingerNumberPaint.setTextAlign(Paint.Align.CENTER);
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
+    protected void onDraw(Canvas c) {
+        super.onDraw(c);
 
-        int width = getWidth();
-        int height = getHeight();
-        int numRows = 5; // Adjust as needed for your grid
-        int numColumns = 5; // Make the grid rectangular by adding more columns
+        // 1) Respetar paddings
+        float padL = getPaddingLeft();
+        float padR = getPaddingRight();
+        float padT = getPaddingTop();
+        float padB = getPaddingBottom();
 
-        // Calculate the distance between the lines
-        int rowSpacing = height / numRows;
-        int colSpacing = width / numColumns;
+        // 2) Márgenes internos (dejamos espacio de pointRadius dentro de paddings)
+        float left   = padL + pointRadius;
+        float right  = getWidth()  - padR - pointRadius;
+        float top    = padT + pointRadius;
+        float bottom = getHeight() - padB - pointRadius;
 
-        // Draw the topmost thick horizontal line if leftNumber is 1
-        if (leftNumber == 1) {
-            canvas.drawLine(0, 0, width, 0, thickTopLinePaint);
+        // 3) Parámetros fijos
+        int strings = pointPositions.length; // 6
+
+        // 4) Cálculo de espaciados
+        float rowH = (bottom - top) / frets;
+        float colW = (right - left) / (strings - 1);
+
+        // 5) Dibujar líneas horizontales
+        for (int i = 0; i <= frets; i++) {
+            float y = top + i * rowH;
+            c.drawLine(left, y, right, y, i == 0 ? thickTopLinePaint : gridPaint);
+        }
+        // 6) Dibujar líneas verticales
+        for (int i = 0; i < strings; i++) {
+            float x = left + i * colW;
+            c.drawLine(x, top, x, bottom, gridPaint);
         }
 
-        // Draw the standard leftmost vertical line (thin)
-        canvas.drawLine(0, 0, 0, height, gridPaint);
-
-        // Draw the remaining grid lines, skipping the bottom horizontal line
-        for (int i = 1; i < numRows; i++) {
-            canvas.drawLine(0, i * rowSpacing, width, i * rowSpacing, gridPaint);
-        }
-        for (int i = 1; i < numColumns; i++) {
-            canvas.drawLine(i * colSpacing, 0, i * colSpacing, height, gridPaint);
-        }
-
-        // Draw points and finger numbers based on pointPositions and fingerNumbers arrays
-        for (int i = 0; i < pointPositions.length; i++) {
-            if (pointPositions[i] != -1) {
-                float cx = i * colSpacing;  // Align with vertical lines
-                float cy = (pointPositions[i] - 0.5f) * rowSpacing; // Shift the point slightly above the intersection
-                canvas.drawCircle(cx, cy, 15, pointPaint); // Larger and thicker point
-
-                // Draw the finger number inside the point
-                if (!fingerNumbers[i].isEmpty()) {
-                    canvas.drawText(fingerNumbers[i], cx, cy + 8, fingerNumberPaint); // Adjust the y-position to center text
+        // 7) Dibujar puntos y fingerNumbers
+        for (int i = 0; i < strings; i++) {
+            int fret = pointPositions[i];
+            if (fret > 0) {
+                float cx = left + i * colW;
+                float cy = top + (fret - 0.5f) * rowH;
+                c.drawCircle(cx, cy, pointRadius, pointPaint);
+                String fn = fingerNumbers[i];
+                if (!fn.isEmpty()) {
+                    // centramos ligeramente hacia abajo
+                    c.drawText(fn, cx, cy + (fingerNumberPaint.getTextSize() / 3), fingerNumberPaint);
                 }
             }
         }
 
-        // Draw the symbols ('X' and '0') above the topmost horizontal line
-        for (int i = 0; i < stringSymbols.length; i++) {
-            if (!stringSymbols[i].isEmpty()) {
-                float cx = i * colSpacing;  // Align with vertical lines
-                float cy = -20; // Position just above the topmost line
-
-                if (stringSymbols[i].equals("0")) {
-                    symbolPaint.setTextSize(40); // Smaller size for '0'
-                } else {
-                    symbolPaint.setTextSize(60); // Larger size for 'X'
-                }
-
-                canvas.drawText(stringSymbols[i], cx, cy, symbolPaint);
+        // 8) Dibujar símbolos 'X' y '0' encima de la rejilla (respetando padding)
+        for (int i = 0; i < strings; i++) {
+            String sym = stringSymbols[i];
+            if (!sym.isEmpty()) {
+                float x = left + i * colW;
+                float y = top - pointRadius; // suficiente espacio por paddingTop
+                symbolPaint.setTextSize(sym.equals("0") ? 40 : 60);
+                c.drawText(sym, x, y, symbolPaint);
             }
         }
 
-        // Draw the right border line (but skip the bottom border line)
-        canvas.drawLine(width, 0, width, height, gridPaint); // Right border
-
-        // Draw the number on the top-left side of the grid, centered in the first rectangle
-        float xPos = -50;  // Adjust the x-position to move it left and away from the grid
-        float yPos = rowSpacing / 2 + 10;  // Adjust the y-position to center the number within the first row rectangle
-        canvas.drawText(String.valueOf(leftNumber), xPos, yPos, textPaint);
+        // 9) Número de traste en la izquierda
+        float x0 = left - pointRadius * 1.2f;
+        float y0 = top + rowH / 2 + (symbolPaint.getTextSize() / 2 - 6);
+        c.drawText(String.valueOf(leftNumber), x0, y0, symbolPaint);
     }
 
+    /**
+     * hint:   e.g. "0232x0"
+     * fingers: e.g. "012300"
+     */
     public void setPointsFromHint(String hint, String fingers) {
-        boolean needsAdjustment = false;
-        int minValue = Integer.MAX_VALUE;
-
-        // First pass: find the minimum fret greater than 0 and check if adjustment is needed
-        for (int i = 0; i < hint.length(); i++) {
-            char symbol = hint.charAt(i);
-            if (symbol != 'x' && symbol != '0') {
-                int fret = Character.getNumericValue(symbol);
-                if (fret > 5) {
-                    needsAdjustment = true;
-                }
-                if (fret > 0 && fret < minValue) {
-                    minValue = fret;
-                }
+        // primer pase: detectar si hay que ajustar
+        boolean needsAdjust = false;
+        int minFret = Integer.MAX_VALUE;
+        for (char ch : hint.toCharArray()) {
+            if (ch != 'x' && ch != '0') {
+                int f = Character.getNumericValue(ch);
+                if (f > frets) needsAdjust = true;
+                if (f > 0 && f < minFret) minFret = f;
             }
         }
+        leftNumber = needsAdjust ? minFret : 1;
 
-        leftNumber = needsAdjustment ? minValue : 1; // Adjust only if needed
-
-        // Second pass: adjust the point positions and set symbols based on the minimum fret
-        for (int i = 0; i < hint.length(); i++) {
-            char symbol = hint.charAt(i);
-            if (symbol == 'x' || symbol == '0') {
-                pointPositions[i] = -1; // No point for this string
-                stringSymbols[i] = String.valueOf(symbol); // Store the 'X' or '0' symbol
-                fingerNumbers[i] = ""; // No finger number for 'X' or '0'
+        // segundo pase: rellenar arrays
+        for (int i = 0; i < hint.length() && i < pointPositions.length; i++) {
+            char ch = hint.charAt(i);
+            if (ch == 'x' || ch == '0') {
+                pointPositions[i] = -1;
+                stringSymbols[i]  = String.valueOf(ch);
+                fingerNumbers[i]  = "";
             } else {
-                int fret = Character.getNumericValue(symbol);
-                pointPositions[i] = (fret > 0 && needsAdjustment) ? fret - (minValue - 1) : fret;
-                stringSymbols[i] = ""; // No symbol for this string
-                fingerNumbers[i] = fingers.length() > i ? String.valueOf(fingers.charAt(i)) : ""; // Store the finger number if provided
+                int f = Character.getNumericValue(ch);
+                pointPositions[i] = needsAdjust ? f - (minFret - 1) : f;
+                stringSymbols[i]  = "";
+                fingerNumbers[i]  = i < fingers.length() ? String.valueOf(fingers.charAt(i)) : "";
             }
         }
-
-        invalidate(); // Redraw the view
+        invalidate();
     }
 }
