@@ -1,48 +1,30 @@
-<!-- res/layout/list_header.xml -->
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:padding="8dp"
-    android:background="@android:color/darker_gray">
-    <TextView
-        android:id="@+id/header_title"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="3"
-        android:text="Título"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:textSize="16sp" />
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:fontFamily="@font/roboto_mono_regular">
 
-    <TextView
-        android:id="@+id/header_author"
-        android:layout_width="0dp"
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="2"
-        android:text="Autor"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:textSize="16sp" />
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginVertical="16dp"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#F5F5F5"
+        app:cardUseCompatPadding="false"
+        app:cardPreventCornerOverlap="true">
 
-    <TextView
-        android:id="@+id/header_difficulty"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="Dif"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:textSize="16sp" />
-
-    <TextView
-        android:id="@+id/header_favorites"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="Fav"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:textSize="16sp" />
-</LinearLayout>
+        <SearchView
+            android:id="@+id/searchView"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:queryHint="Busca artistas o canciones"
+            android:iconifiedByDefault="false"
+            android:background="@null"
+            app:queryBackground="@null"
+            app:iconifiedByDefault="false"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+        android:fontFamily="@font/roboto_mono_medium" />
+    </androidx.cardview.widget.CardView>
+</merge>

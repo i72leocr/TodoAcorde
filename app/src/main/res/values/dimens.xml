@@ -2,4 +2,6 @@
     <!-- Define the dimensions for the dialog -->
     <dimen name="dialog_width">150dp</dimen>
     <dimen name="dialog_height">150dp</dimen>
+    <dimen name="prog_sub_height">8dp</dimen>
+    <dimen name="prog_main_height">14dp</dimen>
 </resources>

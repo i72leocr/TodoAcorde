@@ -10,8 +10,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+
 import android.app.AlertDialog;
 
 public class ChordTypeFragment extends Fragment {
@@ -38,33 +40,40 @@ public class ChordTypeFragment extends Fragment {
         recyclerView = view.findViewById(R.id.recycler_view_type);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        List<String> chordTypes = Arrays.asList("Acordes Mayores", "Acordes Menores", "Acordes Dominantes", "Acordes Mayores Séptimos", "Acordes Menores Séptimos");
-        chordAdapter = new ChordAdapter(chordTypes);
-        recyclerView.setAdapter(chordAdapter);
-
-        chordAdapter.setOnItemClickListener(position -> {
-            String selectedChordType = chordTypes.get(position);
-            String description = getDescriptionForChordType(selectedChordType);
-            showConfirmationDialog("ChordType", selectedChordType, description);
-        });
+        // Cargar dinámicamente los tipos de acordes desde la base de datos
+        loadChordTypesFromDatabase();
 
         return view;
     }
 
-    private String getDescriptionForChordType(String chordType) {
-        switch (chordType) {
-            case "Acordes Mayores":
-                return "Acordes como A, E, D... que tienen un sonido brillante y completo.";
-            case "Acordes Menores":
-                return "Acordes como Am, Em, Dm... conocidos por su tono melancólico.";
-            // Add cases for other chord types with their descriptions
-            default:
-                return "Descripción no disponible.";
-        }
+    private void loadChordTypesFromDatabase() {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            todoAcordeDatabase db = todoAcordeDatabase.getInstance(requireContext());
+            ChordTypeDao chordTypeDao = db.chordTypeDao();
+            List<ChordType> chordTypes = chordTypeDao.getAllChordTypes();
+
+            // Actualizar la interfaz de usuario en el hilo principal
+            requireActivity().runOnUiThread(() -> {
+                chordAdapter = new ChordAdapter(
+                        chordTypes.stream()
+                                .map(ChordType::getTypeName)
+                                .collect(Collectors.toList())); // Cambiado para compatibilidad;
+                recyclerView.setAdapter(chordAdapter);
+
+                chordAdapter.setOnItemClickListener(position -> {
+                    ChordType selectedChordType = chordTypes.get(position);
+                    showConfirmationDialog(
+                            "ChordType",
+                            selectedChordType.getTypeName(),
+                            selectedChordType.getDescription()
+                    );
+                });
+            });
+        });
     }
 
     private void showConfirmationDialog(String classificationType, String classificationValue, String description) {
-        new AlertDialog.Builder(getContext())
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Confirm Selection")
                 .setMessage("You selected: " + classificationValue + "\n" + description + "\n\nDo you want to start practicing?")
                 .setPositiveButton("Yes", (dialog, which) -> {
@@ -74,5 +83,3 @@ public class ChordTypeFragment extends Fragment {
                 .show();
     }
 }
-
-

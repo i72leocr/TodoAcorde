@@ -1,0 +1,5 @@
+<!-- scale_note_active_background.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#FFD54F"/> <!-- amarillo suave -->
+    <corners android:radius="8dp"/>
+</shape>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="top10Options">
+        <item>Top 10 canciones por Score</item>
+        <item>Top 10 canciones por Sesiones</item>
+    </string-array>
+    <string-array name="speed_options">
+        <item>0.5×</item>
+        <item>0.75×</item>
+        <item>1×</item>
+    </string-array>
+
+</resources>

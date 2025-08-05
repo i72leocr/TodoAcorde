@@ -27,13 +27,14 @@ public class PCPCalculator {
     }
 
     private static void normalizePCP(float[] pcp) {
-        double magnitude = 0;
+        float sum = 0;
         for (float value : pcp) {
-            magnitude += value * value;
+            sum += value;
         }
-        magnitude = Math.sqrt(magnitude);
+        if (sum == 0) sum = 1; // Evita división por cero
         for (int i = 0; i < 12; i++) {
-            pcp[i] /= magnitude;
+            pcp[i] /= sum;
         }
     }
+
 }

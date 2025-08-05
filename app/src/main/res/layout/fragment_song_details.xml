@@ -1,5 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/fragment_song_details_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -10,39 +12,44 @@
         android:id="@+id/back_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
         android:src="@android:drawable/ic_menu_revert"
-    android:background="?android:selectableItemBackground"
-    android:contentDescription="Back" />
+        android:background="?android:selectableItemBackground"
+        android:contentDescription="Back" />
 
-
-    <!-- Song Title -->
-    <TextView
-        android:id="@+id/song_title"
+    <!-- Song Header: título y autor -->
+    <LinearLayout
+        android:id="@+id/song_header_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:textColor="@android:color/black" />
+        android:orientation="vertical"
+        android:layout_marginTop="8dp">
 
-    <!-- Song Author -->
-    <TextView
-        android:id="@+id/song_author"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="16sp"
-        android:gravity="center"
-        android:textColor="@android:color/darker_gray"
-        android:layout_marginBottom="16dp" />
+        <TextView
+            android:id="@+id/song_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:textColor="@android:color/black" />
 
+        <TextView
+            android:id="@+id/song_author"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginBottom="16dp" />
 
+    </LinearLayout>
+
+    <!-- ScrollView con las líneas de letra y acordes -->
     <ScrollView
         android:id="@+id/scrollView"
         android:layout_width="match_parent"
-        android:layout_height="531dp"
-        android:layout_gravity="center"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="16dp"
         android:background="@color/color_background_nav"
@@ -56,22 +63,68 @@
         android:scrollbarThumbVertical="@android:color/darker_gray"
         android:scrollbars="vertical">
 
-
         <LinearLayout
             android:id="@+id/lyrics_chords_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="8dp" />
-
     </ScrollView>
 
-<Button
-android:id="@+id/btn_practice_chords"
-android:layout_width="wrap_content"
-android:layout_height="wrap_content"
-android:text="Practice Chords"
-android:layout_gravity="center"
-android:layout_marginTop="16dp" />
+    <!-- Encabezado de práctica: oculto hasta pulsar Empezar -->
+    <LinearLayout
+        android:id="@+id/practice_header_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <com.tuguitar.todoacorde.GridWithPointsView
+            android:id="@+id/gridWithPointsView"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:background="@android:color/white" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+    <!-- Controles: Spinner de modo, botón de inicio/parada, Spinner de dificultad -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="8dp">
+
+        <Spinner
+            android:id="@+id/spinner_mode"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:entries="@array/practice_modes" />
+
+        <Button
+            android:id="@+id/btn_practice_chords"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Empezar práctica"
+            android:textSize="20sp" />
+
+        <Spinner
+            android:id="@+id/spinner_difficulty"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:entries="@array/practice_difficulties" />
+    </LinearLayout>
 
 </LinearLayout>

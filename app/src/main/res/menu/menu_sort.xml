@@ -1,25 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <!-- Sorting by title -->
-    <item
-        android:id="@+id/sort_by_title_asc"
-        android:title="Sort by Title (A-Z)"
-        android:icon="@android:drawable/ic_menu_sort_alphabetically" />
-
-    <item
-        android:id="@+id/sort_by_title_desc"
-        android:title="Sort by Title (Z-A)"
-        android:icon="@android:drawable/ic_menu_sort_alphabetically" />
-
-    <!-- Sorting by difficulty -->
-    <item
-        android:id="@+id/sort_by_difficulty_asc"
-        android:title="Sort by Difficulty (Low-High)"
-        android:icon="@android:drawable/ic_menu_sort_by_size" />
-
-    <item
-        android:id="@+id/sort_by_difficulty_desc"
-        android:title="Sort by Difficulty (High-Low)"
-        android:icon="@android:drawable/ic_menu_sort_by_size" />
+    <item android:id="@+id/sort_by_title_asc"
+        android:title="Title ↑"/>
+    <item android:id="@+id/sort_by_title_desc"
+        android:title="Title ↓"/>
+    <item android:id="@+id/sort_by_difficulty_asc"
+        android:title="Difficulty ↑"/>
+    <item android:id="@+id/sort_by_difficulty_desc"
+        android:title="Difficulty ↓"/>
 </menu>

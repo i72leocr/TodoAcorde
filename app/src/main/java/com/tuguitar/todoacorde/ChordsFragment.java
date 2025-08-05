@@ -38,7 +38,7 @@ public class ChordsFragment extends Fragment {
         // Añadir los fragmentos para cada categoría
         chordsPagerAdapter.addFragment(new ChordTypeFragment(), "Tipo de Acorde");
         chordsPagerAdapter.addFragment(new ProgressionsFragment(), "Progresiones Comunes");
-        chordsPagerAdapter.addFragment(new DifficultyFragment(), "Dificultad Técnica");
+//        chordsPagerAdapter.addFragment(new DifficultyFragment(), "Dificultad Técnica");
 
         viewPager.setAdapter(chordsPagerAdapter);
     }

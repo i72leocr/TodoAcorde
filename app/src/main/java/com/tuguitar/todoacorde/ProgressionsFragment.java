@@ -10,9 +10,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import java.util.Arrays;
 import java.util.List;
-
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 public class ProgressionsFragment extends Fragment {
 
@@ -38,16 +38,41 @@ public class ProgressionsFragment extends Fragment {
         recyclerView = view.findViewById(R.id.recycler_view_progressions);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        List<String> progressions = Arrays.asList("I-IV-V", "ii-V-I", "I-vi-IV-V");
-        chordAdapter = new ChordAdapter(progressions);
-        recyclerView.setAdapter(chordAdapter);
-
-        chordAdapter.setOnItemClickListener(position -> {
-            String selectedProgression = progressions.get(position);
-            listener.onChordClassificationSelected("Progression", selectedProgression);
-        });
+        // Cargar progresiones desde la base de datos
+        loadProgressionsFromDatabase();
 
         return view;
     }
-}
 
+    private void loadProgressionsFromDatabase() {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            todoAcordeDatabase db = todoAcordeDatabase.getInstance(requireContext());
+            ProgressionDao progressionDao = db.progressionDao();
+
+            // Obtener todas las progresiones estáticas
+            List<Progression> progressions = progressionDao.getStaticProgressions();
+
+            requireActivity().runOnUiThread(() -> {
+                if (progressions != null && !progressions.isEmpty()) {
+                    // Convertir las progresiones a una lista de nombres
+                    List<String> progressionNames = progressions.stream()
+                            .map(Progression::getName)
+                            .collect(Collectors.toList());
+
+                    // Configurar el adaptador
+                    chordAdapter = new ChordAdapter(progressionNames);
+                    recyclerView.setAdapter(chordAdapter);
+
+                    // Manejar clics en las progresiones
+                    chordAdapter.setOnItemClickListener(position -> {
+                        String selectedProgression = progressionNames.get(position);
+                        listener.onChordClassificationSelected("Progression", selectedProgression);
+                    });
+                } else {
+                    // Manejar el caso en el que no haya progresiones disponibles
+                    // Opcional: Mostrar un mensaje al usuario
+                }
+            });
+        });
+    }
+}

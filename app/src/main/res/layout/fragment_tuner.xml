@@ -1,87 +1,277 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/fragmentTunerRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp"
     android:background="#F5F5F5">
 
-    <!-- Círculo que muestra la nota detectada -->
-    <View
+    <!-- BOTÓN DE MICRÓFONO ARRIBA IZQUIERDA -->
+
+    <!-- CÍRCULO DE NOTA -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnMic"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="16dp"
+        app:backgroundTint="@color/primary"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:fontFamily="@font/roboto_mono_extralight"
+        app:tint="@android:color/white" />
+
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/noteCircle"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_centerHorizontal="true"
-        android:background="@drawable/circle_background"
-        android:layout_marginTop="32dp"/>
+        android:layout_width="64dp"
+        android:layout_height="58dp"
+        android:layout_marginTop="24dp"
+        app:cardBackgroundColor="@android:color/white"
+        app:cardCornerRadius="48dp"
+        app:cardElevation="6dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnMic"
+        android:fontFamily="@font/roboto_mono_extralight"
+        app:strokeColor="@color/primary"
+        app:strokeWidth="2dp">
 
-    <!-- Texto dentro del círculo (nota) -->
-    <TextView
-        android:id="@+id/noteDisplay"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:gravity="center"
-        android:text="E"
-        android:textColor="@color/black"
-        android:textSize="36sp"
-        android:textStyle="bold" />
+        <TextView
+            android:id="@+id/noteDisplay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="E"
+            android:textColor="@color/primary"
+            android:textSize="28sp"
+            android:fontFamily="@font/roboto_mono_extralight"/>
+    </com.google.android.material.card.MaterialCardView>
 
-    <TextView
-        android:id="@+id/frequencyDisplay"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Frecuencia: 0.00 Hz"
-        android:textSize="18sp"
-        android:textColor="@android:color/black"
-        android:layout_gravity="center_horizontal"/>
-    <!-- Barra de afinación -->
+    <!-- BARRA DE PROGRESO -->
+
+    <!-- ICONO MENOS AMPLIADO -->
+
+    <!-- ICONO MÁS AMPLIADO -->
+
+    <!-- TEXTO DE ACCIÓN -->
+
     <SeekBar
         android:id="@+id/tuningBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/noteCircle"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="32dp"
+        android:layout_width="0dp"
+        android:layout_height="32dp"
+        android:layout_marginTop="8dp"
         android:max="100"
         android:progress="50"
         android:progressDrawable="@drawable/custom_progress_bar"
-        android:thumb="@drawable/thumb_indicator" />
+        android:thumb="@drawable/thumb_indicator"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/noteCircle" />
 
-    <!-- Indicador de afinación -->
-    <TextView
-        android:id="@+id/tuningIndicator"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/tuningBar"
-        android:layout_marginTop="16dp"
-        android:layout_centerHorizontal="true"
-        android:text="Afinado"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="@android:color/black"/>
+    <ImageView
+        android:id="@+id/tuningMinus"
+        android:layout_width="56dp"
+        android:layout_height="66dp"
+        android:layout_marginStart="172dp"
+        android:layout_marginTop="8dp"
+        android:src="@drawable/ic_plus_circle"
+        android:tint="@color/color_background_nav"
+        app:layout_constraintStart_toStartOf="@id/tuningBar"
+        app:layout_constraintTop_toBottomOf="@id/tuningBar" />
 
-    <!-- Acción de tensar o destensar -->
+    <ImageView
+        android:id="@+id/tuningPlus"
+        android:layout_width="56dp"
+        android:layout_height="66dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="180dp"
+        android:src="@drawable/ic_minus_circle"
+        android:tint="@color/color_background_nav"
+        app:layout_constraintEnd_toEndOf="@id/tuningBar"
+        app:layout_constraintTop_toBottomOf="@id/tuningBar" />
+
     <TextView
         android:id="@+id/tensionAction"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/tuningIndicator"
-        android:layout_marginTop="8dp"
-        android:layout_centerHorizontal="true"
+        android:layout_marginTop="12dp"
         android:text="TENSAR"
+        android:textColor="@color/red"
         android:textSize="16sp"
-        android:textColor="@android:color/holo_red_dark"
-        android:visibility="gone"/>
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tuningPlus" />
 
-    <!-- Botón de inicio/detener -->
-    <!-- Botón de micrófono (Start/Stop) -->
-    <ImageButton
-        android:id="@+id/btnMic"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/tensionAction"
-        android:layout_marginTop="32dp"
-        android:layout_centerHorizontal="true"
-        android:background="?attr/selectableItemBackground"
-        android:src="@android:drawable/ic_btn_speak_now"
-        android:contentDescription="Microphone" />
-</RelativeLayout>
+    <!-- HEADSTOCK -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/headstockContainer"
+        android:layout_width="291dp"
+        android:layout_height="372dp"
+        android:layout_marginBottom="12dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:id="@+id/headstock"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="Clavijero"
+            android:scaleType="fitXY"
+            android:src="@drawable/ic_headstock" />
+
+        <!-- BOTONES DE SELECCIÓN DE CUERDA -->
+
+        <ImageButton
+            android:id="@+id/string6"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginTop="156dp"
+            android:background="@android:color/transparent"
+            android:elevation="4dp"
+            android:src="@drawable/circle_cream_black"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/string5"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginTop="108dp"
+            android:background="@android:color/transparent"
+            android:elevation="4dp"
+            android:src="@drawable/circle_cream_black"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/string4"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginTop="64dp"
+            android:background="@android:color/transparent"
+            android:elevation="4dp"
+            android:src="@drawable/circle_cream_black"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/string4_clavija"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="22dp"
+            android:layout_height="31dp"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="60dp"
+            android:background="@android:color/transparent"
+            android:elevation="4dp"
+            android:src="@drawable/circle_translucent_selected"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/string5_clavija"
+            android:layout_width="23dp"
+            android:layout_height="30dp"
+            android:layout_marginStart="44dp"
+            android:layout_marginTop="108dp"
+            android:background="@android:color/transparent"
+            android:elevation="4dp"
+            android:src="@drawable/circle_translucent_selected"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/string6_clavija"
+            android:layout_width="23dp"
+            android:layout_height="31dp"
+            android:layout_marginStart="48dp"
+            android:layout_marginTop="156dp"
+            android:background="@android:color/transparent"
+            android:elevation="4dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/string3_clavija"
+            android:layout_width="24dp"
+            android:layout_height="33dp"
+            android:layout_marginStart="228dp"
+            android:layout_marginTop="60dp"
+            android:background="@android:color/transparent"
+            android:elevation="4dp"
+            android:src="@drawable/circle_translucent_selected"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/string2_clavija"
+            android:layout_width="24dp"
+            android:layout_height="31dp"
+            android:layout_marginStart="224dp"
+            android:layout_marginTop="108dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/circle_translucent_selected"
+            android:elevation="4dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/string1_clavija"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="216dp"
+            android:layout_marginTop="156dp"
+            android:background="@android:color/transparent"
+            android:elevation="4dp"
+            android:src="@drawable/circle_translucent_selected"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/string1"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="260dp"
+            android:layout_marginTop="156dp"
+            android:background="@android:color/transparent"
+            android:elevation="4dp"
+            android:src="@drawable/circle_cream_black"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/string3"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="260dp"
+            android:layout_marginTop="64dp"
+            android:background="@android:color/transparent"
+            android:elevation="4dp"
+            android:src="@drawable/circle_cream_black"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/string2"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="260dp"
+            android:layout_marginTop="108dp"
+            android:background="@android:color/transparent"
+            android:elevation="4dp"
+            android:src="@drawable/circle_cream_black"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

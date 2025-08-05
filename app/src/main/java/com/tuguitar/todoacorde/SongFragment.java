@@ -2,401 +2,267 @@ package com.tuguitar.todoacorde;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
-import android.view.MenuInflater;
 import android.view.View;
-import android.widget.TextView;
-
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.ListView;
 import android.widget.PopupMenu;
 import android.widget.SearchView;
+import android.widget.ImageView;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatButton;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.ConcatAdapter;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.Arrays;
 
+/**
+ * Fragment que muestra la lista de canciones y navega al fragment de práctica.
+ */
 public class SongFragment extends Fragment {
+    private static final String TAG     = "SongFragment";
+    private static final String PREFS   = "SongPreferences";
+    private static final String ARG_SONG_ID = "song_id";
+    private static final int    USER_ID = 1;
 
-    private static final int SONGS_PER_PAGE = 10;
+    private final List<Song> allSongs      = new ArrayList<>();
+    private final List<Song> filteredSongs = new ArrayList<>();
 
-    private List<Song> allSongs;
-    private List<Song> filteredSongs;
-    private SongAdapter adapter;
-    private String currentSortCriterion;
-    private boolean ascending;
-    private boolean showFavoritesOnly;
-    private SharedPreferences sharedPreferences;
-    private Button sortButton;
-    private CheckBox favoriteCheckBox;
-    private Button nextPageButton;
-    private Button prevPageButton;
-    private TextView pageIndicator;
-    private SearchView searchView;  // Initialize searchView
-    private String currentQuery = "";  // Initialize currentQuery
-    private int currentPage;
-
-    private static final String TAG = "SongFragment";
-
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        // Listen for results from SongDetailsFragment
-        getParentFragmentManager().setFragmentResultListener("requestKey", this, (requestKey, bundle) -> {
-            currentPage = bundle.getInt("current_page", 0);
-            Log.d(TAG, "Page restored from SongDetailsFragment: " + currentPage);
-            updatePage();
-        });
-    }
+    private SongAdapter        songAdapter;
+    private SearchView         searchView;
+    private boolean            ascending;
+    private String             sortCriterion;
+    private boolean            showFavoritesOnly;
+    private SharedPreferences  prefs;
+    private SongViewModel      songViewModel;
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_song, container, false);
+    }
 
-        View view = inflater.inflate(R.layout.fragment_song, container, false);
+    @Override
+    public void onViewCreated(@NonNull View root,
+                              @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(root, savedInstanceState);
 
-        // Inicializar SharedPreferences
-        sharedPreferences = requireContext().getSharedPreferences("SongPreferences", Context.MODE_PRIVATE);
+        // --- 1) Preferencias ---
+        prefs             = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        showFavoritesOnly = prefs.getBoolean("show_favorites_only", false);
+        ascending         = prefs.getBoolean("sort_order", true);
+        sortCriterion     = prefs.getString("sort_criterion", "diff");
+        Log.d(TAG, "Prefs loaded → showFav=" + showFavoritesOnly +
+                " sort=" + sortCriterion + " asc=" + ascending);
 
-        // Cargar preferencias guardadas
-        currentSortCriterion = sharedPreferences.getString("sort_criterion", "title");
-        ascending = sharedPreferences.getBoolean("sort_order", true);
-        showFavoritesOnly = sharedPreferences.getBoolean("show_favorites_only", false);
+        // --- 2) SearchView ---
+        searchView = root.findViewById(R.id.searchView);
+        setupSearchAppearance();
+        setupSearchListener();
 
-        // Inicializar componentes
-        allSongs = getSongs();  // Lista original de canciones
-        filteredSongs = new ArrayList<>(allSongs);  // Lista filtrada y ordenada
+        // --- 3) RecyclerView + Adapters ---
+        RecyclerView rv = root.findViewById(R.id.song_list);
+        rv.setLayoutManager(new LinearLayoutManager(requireContext()));
+        HeaderAdapter headerAdapter = new HeaderAdapter(requireContext());
+        songAdapter = new SongAdapter(
+                requireContext(),
+                this::navigateToDetails,
+                this::onFavoriteToggled
+        );
+        rv.setAdapter(new ConcatAdapter(
+                new ConcatAdapter.Config.Builder().setIsolateViewTypes(true).build(),
+                headerAdapter,
+                songAdapter
+        ));
 
-        Log.d(TAG, "Canciones originales cargadas: " + allSongs.size());  // Log de canciones iniciales
+        // --- 4) ViewModel + Repository ---
+        todoAcordeDatabase db = todoAcordeDatabase.getInstance(requireContext());
+        SongRepository repo = new SongRepository(db.songDao(), db.favoriteSongDao());
+        songViewModel = new ViewModelProvider(
+                this,
+                new SongViewModel.Factory(repo, USER_ID)
+        ).get(SongViewModel.class);
 
-        adapter = new SongAdapter(getContext(), filteredSongs);
+        // --- 5) Observamos cambios ---
+        songViewModel.getSongsWithFav().observe(getViewLifecycleOwner(), list -> {
+            allSongs.clear();
+            if (list != null) allSongs.addAll(list);
+            applyFilterSort();
+            songAdapter.submitList(new ArrayList<>(filteredSongs));
+        });
+    }
 
-        // Configurar ListView
-        ListView listView = view.findViewById(R.id.song_list);
+    private void setupSearchAppearance() {
+        int pad16 = (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, 16,
+                getResources().getDisplayMetrics()
+        );
+        searchView.setPadding(pad16, searchView.getPaddingTop(), pad16, searchView.getPaddingBottom());
 
-        // Inflar y agregar el encabezado al ListView
-        View headerView = inflater.inflate(R.layout.list_header, null);
-        listView.addHeaderView(headerView);  // Añadir el encabezado
+        View plate = searchView.findViewById(androidx.appcompat.R.id.search_plate);
+        if (plate != null) {
+            plate.setBackgroundColor(Color.TRANSPARENT);
+            plate.setPadding(0, 0, 0, 0);
+        }
 
-        listView.setAdapter(adapter);
+        View src = searchView.findViewById(androidx.appcompat.R.id.search_src_text);
+        if (src != null) {
+            src.setBackground(null);
+            src.setPadding(0, src.getPaddingTop(), src.getPaddingRight(), src.getPaddingBottom());
+        }
 
-        // Configurar SearchView
-        SearchView searchView = view.findViewById(R.id.searchView);
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                return false;
+        ImageView mag = searchView.findViewById(androidx.appcompat.R.id.search_mag_icon);
+        if (mag != null) {
+            mag.setPadding(0, 0, 0, 0);
+            if (mag.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+                ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) mag.getLayoutParams();
+                lp.setMarginStart(0);
+                mag.setLayoutParams(lp);
             }
+        }
 
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                filterSongs(newText);
+        searchView.setQuery("", false);
+    }
+
+    private void setupSearchListener() {
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override public boolean onQueryTextSubmit(String query) { return false; }
+            @Override public boolean onQueryTextChange(String query) {
+                applyFilterSort();
+                songAdapter.submitList(new ArrayList<>(filteredSongs));
                 return true;
             }
         });
-
-        // Configurar botones de paginación
-        nextPageButton = view.findViewById(R.id.next_page_button);
-        prevPageButton = view.findViewById(R.id.prev_page_button);
-        pageIndicator = view.findViewById(R.id.page_indicator);
-
-        nextPageButton.setOnClickListener(v -> {
-            currentPage++;
-            updatePage();
-        });
-
-        prevPageButton.setOnClickListener(v -> {
-            if (currentPage > 0) currentPage--;
-            updatePage();
-        });
-
-        // Configurar botón de ordenar
-        sortButton = view.findViewById(R.id.sort_button);
-        updateSortButtonText(); // Actualizar texto del botón de ordenación
-        sortButton.setOnClickListener(v -> showPopupMenu(v));
-
-        // Configurar CheckBox para favoritos
-        favoriteCheckBox = view.findViewById(R.id.checkbox_favorites);
-        favoriteCheckBox.setChecked(showFavoritesOnly);
-        favoriteCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            showFavoritesOnly = isChecked;
-            applySortingAndFiltering();  // Aplicar filtros y ordenamiento
-            saveFavoriteState();  // Guardar estado de favoritos
-        });
-
-        listView.setOnItemClickListener((parent, view1, position, id) -> {
-            int headerViewsCount = listView.getHeaderViewsCount(); // Account for header views
-            int actualPosition = position - headerViewsCount;  // Get the position within the visible items
-
-            // Ensure actualPosition is valid within the paginated list
-            if (actualPosition >= 0 && actualPosition < adapter.getCount()) {
-                // Cast the returned object to a Song type
-                Song selectedSong = (Song) adapter.getItem(actualPosition);
-                openSongDetails(selectedSong);
-            } else {
-                Log.e(TAG, "Invalid position: " + actualPosition + ", size of visible list: " + adapter.getCount());
-            }
-        });
-
-        // Aplicar preferencias de orden y filtrado
-        applySortingAndFiltering();
-        updatePage();
-        return view;
-    }
-    @Override
-    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
-        super.onViewStateRestored(savedInstanceState);
-        if (savedInstanceState != null) {
-            currentPage = savedInstanceState.getInt("current_page");
-            Log.d(TAG, "recibido2: " + currentPage);
-            updatePage();  // Restore the page state
-        }
-    }
-    @Override
-    public void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putInt("current_page", currentPage);
-        Log.d(TAG, "onSaveInstanceState: " + currentPage);
-        outState.putString("search_query", currentQuery);
     }
 
-    private void showPopupMenu(View view) {
-        PopupMenu popup = new PopupMenu(getContext(), view);
-        MenuInflater inflater = popup.getMenuInflater();
-        inflater.inflate(R.menu.menu_sort, popup.getMenu());
+    private void applyFilterSort() {
+        List<Song> base = showFavoritesOnly
+                ? allSongs.stream().filter(Song::isFavorite).collect(Collectors.toList())
+                : new ArrayList<>(allSongs);
 
-        popup.setOnMenuItemClickListener(item -> {
-            int itemId = item.getItemId();
-
-            if (itemId == R.id.sort_by_title_asc) {
-                currentSortCriterion = "title";
-                ascending = true;
-            } else if (itemId == R.id.sort_by_title_desc) {
-                currentSortCriterion = "title";
-                ascending = false;
-            } else if (itemId == R.id.sort_by_difficulty_asc) {
-                currentSortCriterion = "difficulty";
-                ascending = true;
-            } else if (itemId == R.id.sort_by_difficulty_desc) {
-                currentSortCriterion = "difficulty";
-                ascending = false;
-            }
-
-            applySortingAndFiltering();
-            updateSortButtonText();
-            saveSortState();
-            return true;
-        });
-
-        popup.show();
-    }
-
-    private void sortSongs() {
-        if (currentSortCriterion.equals("title")) {
-            filteredSongs.sort(ascending ? Comparator.comparing(Song::getTitle) : Comparator.comparing(Song::getTitle).reversed());
-        } else if (currentSortCriterion.equals("difficulty")) {
-            filteredSongs.sort(ascending ? Comparator.comparingInt(Song::getDifficulty) : Comparator.comparingInt(Song::getDifficulty).reversed());
-        }
-    }
-
-    private void filterFavorites() {
-        if (showFavoritesOnly) {
-            filteredSongs = allSongs.stream()
-                    .filter(Song::isFavorite)
+        String q = searchView.getQuery().toString().toLowerCase();
+        if (!q.isEmpty()) {
+            base = base.stream()
+                    .filter(s -> s.getTitle().toLowerCase().contains(q)
+                            || s.getAuthor().toLowerCase().contains(q))
                     .collect(Collectors.toList());
-
-            Log.d(TAG, "Filtradas canciones favoritas. Total favoritos: " + filteredSongs.size());
-
-        } else {
-            filteredSongs = new ArrayList<>(allSongs); // Restaurar lista completa
-            Log.d(TAG, "Mostrar todas las canciones. Total canciones: " + filteredSongs.size());
-        }
-    }
-
-    private void applySortingAndFiltering() {
-        filterFavorites();  // Apply favorite filtering
-        sortSongs();  // Apply sorting
-
-        // Ensure currentPage is within the bounds of the filtered list
-        int totalPages = (filteredSongs.size() + SONGS_PER_PAGE - 1) / SONGS_PER_PAGE;
-        if (currentPage >= totalPages) {
-            currentPage = totalPages - 1;
         }
 
-        // Prevent currentPage from being negative
-        if (currentPage < 0) {
-            currentPage = 0;
-        }
+        Comparator<Song> cmp = "title".equals(sortCriterion)
+                ? Comparator.comparing(Song::getTitle, String.CASE_INSENSITIVE_ORDER)
+                : Comparator.comparingInt(Song::getDifficulty);
+        if (!ascending) cmp = cmp.reversed();
 
-        updatePage();  // Refresh the pagination
-        Log.d(TAG, "Lista actualizada después de aplicar filtros y ordenamiento. Total canciones: " + filteredSongs.size());
+        base.sort(cmp);
+
+        filteredSongs.clear();
+        filteredSongs.addAll(base);
     }
 
-
-    private void filterSongs(String query) {
-        // Always start filtering from the full list of songs, not the already filtered one
-        List<Song> searchFilteredSongs;
-
-        // If the query is empty, reset to all songs (filtered by favorites if necessary)
-        if (query == null || query.trim().isEmpty()) {
-            applySortingAndFiltering();  // Reset filteredSongs to all or favorites
-        } else {
-            searchFilteredSongs = allSongs.stream()
-                    .filter(song -> song.getTitle().toLowerCase().contains(query.toLowerCase()) ||
-                            song.getAuthor().toLowerCase().contains(query.toLowerCase()))  // Filter by title or author
-                    .collect(Collectors.toList());
-
-            filteredSongs = searchFilteredSongs;  // Update the filtered songs based on the search query
-            updatePage();  // Update the list and pagination
-        }
-
-        Log.d(TAG, "Aplicado filtro de búsqueda. Resultados: " + filteredSongs.size());
-    }
-
-
-    private void updateSortButtonText() {
-        String sortOrderText = ascending ? "Asc" : "Desc";
-        if (currentSortCriterion.equals("title")) {
-            sortButton.setText("Sorted by Title (" + sortOrderText + ")");
-        } else if (currentSortCriterion.equals("difficulty")) {
-            sortButton.setText("Sorted by Difficulty (" + sortOrderText + ")");
-        }
-    }
-
-    private void saveSortState() {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("sort_criterion", currentSortCriterion);
-        editor.putBoolean("sort_order", ascending);
-        editor.apply();
-    }
-
-    private void saveFavoriteState() {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putBoolean("show_favorites_only", showFavoritesOnly);
-        editor.apply();
-    }
-
-    private void openSongDetails(Song selectedSong) {
-        SongDetailsFragment songDetailsFragment = new SongDetailsFragment();
-        Bundle bundle = new Bundle();
-        bundle.putString("song_title", selectedSong.getTitle());
-        bundle.putString("song_author", selectedSong.getAuthor());
-        bundle.putStringArrayList("song_lyrics", new ArrayList<>(selectedSong.getLyrics()));
-        bundle.putStringArrayList("song_chords", new ArrayList<>(selectedSong.getChords()));
-        bundle.putInt("current_page", currentPage);
-        Log.d(TAG, "Pagina enviada: " + currentPage);
-        bundle.putString("search_query", currentQuery);// Pass the current page
-        songDetailsFragment.setArguments(bundle);
-
-        getParentFragmentManager().beginTransaction()
-                .replace(R.id.fragment_container, songDetailsFragment)
+    private void navigateToDetails(Song song) {
+        // Solo pasamos la ID de la canción
+        PracticeChordsOptimizedFragment f = new PracticeChordsOptimizedFragment();
+        Bundle b = new Bundle();
+        b.putInt(ARG_SONG_ID, song.getId());
+        f.setArguments(b);
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, f)
                 .addToBackStack(null)
                 .commit();
     }
 
-    private List<Song> getSongs() {
-        List<Song> songs = new ArrayList<>();
+    private void onFavoriteToggled(Song song) {
+        boolean nowFav = !song.isFavorite();
+        song.setFavorite(nowFav);
+        songViewModel.toggleFavorite(USER_ID, song.getId(), nowFav);
 
-        // House of the Rising Sun
-        String houseOfRisingSunLyrics = "There is a house in New Orleans\n" +
-                "They call the rising sun\n" +
-                "And it's been the ruin\n" +
-                "of many a poor boy\n" +
-                "And God, I know, I'm one";
-
-        String houseOfRisingSunChords = "      Am    C        D           F  \n" +
-                "      Am       C      E \n" +
-                "          Am       C  \n" +
-                "    D           F \n" +
-                "     Am      E       Am   C  D  F";
-
-        List<String> houseOfRisingSunLyricsList = Arrays.asList(houseOfRisingSunLyrics.split("\n"));
-        List<String> houseOfRisingSunChordsList = Arrays.asList(houseOfRisingSunChords.split("\n"));
-        List<Integer> houseOfRisingSunDurations = Arrays.asList(12, 12, 12, 12, 12, 12, 12, 12);  // Duraciones de los acordes
-
-        songs.add(new Song("House of the Rising Sun", "Traditional", 3, houseOfRisingSunLyricsList, houseOfRisingSunChordsList, houseOfRisingSunDurations, 78, false));
-
-        // New song 1: Example Song
-        String exampleSongLyrics = "This is the first verse\n" +
-                "Here is the chorus line\n" +
-                "Another verse appears\n" +
-                "Ending with a chorus";
-
-        String exampleSongChords = "      G        D        Em    \n" +
-                "      C       G      D   \n" +
-                "      G       D     Em    \n" +
-                "      C        G    D    G";
-
-        List<String> exampleSongLyricsList = Arrays.asList(exampleSongLyrics.split("\n"));
-        List<String> exampleSongChordsList = Arrays.asList(exampleSongChords.split("\n"));
-        List<Integer> exampleSongDurations = Arrays.asList(8, 8, 8, 8);
-
-        songs.add(new Song("Example Song", "Artist Name", 2, exampleSongLyricsList, exampleSongChordsList, exampleSongDurations, 120, false));
-
-        // New song 2: Another Song
-        String anotherSongLyrics = "Verse 1 of the new song\n" +
-                "Followed by the chorus\n" +
-                "Another verse and\n" +
-                "Finally a chorus";
-
-        String anotherSongChords = "      C       F       G     \n" +
-                "      C       F      G    \n" +
-                "      C       F       G    \n" +
-                "      C       F     G    C";
-
-        List<String> anotherSongLyricsList = Arrays.asList(anotherSongLyrics.split("\n"));
-        List<String> anotherSongChordsList = Arrays.asList(anotherSongChords.split("\n"));
-        List<Integer> anotherSongDurations = Arrays.asList(10, 10, 10, 10);
-
-        songs.add(new Song("Another Song", "Another Artist", 4, anotherSongLyricsList, anotherSongChordsList, anotherSongDurations, 100, true));
-
-        // Retrieve favorite status from SharedPreferences
-        SharedPreferences prefs = requireContext().getSharedPreferences("SongPreferences", Context.MODE_PRIVATE);
-
-        // Loop to create additional songs with different names (you can keep this to create a large number of generic songs)
-        for (int i = 1; i <= 100; i++) {
-            String songTitle = "Song " + i;
-            String songAuthor = "Anonymous " + i;
-            boolean isFavorite = prefs.getBoolean(songTitle, false);
-
-            songs.add(new Song(songTitle, songAuthor, i % 5 + 1, houseOfRisingSunLyricsList, houseOfRisingSunChordsList, houseOfRisingSunDurations, 78, isFavorite));
-        }
-
-        return songs;
+        applyFilterSort();
+        songAdapter.submitList(new ArrayList<>(filteredSongs));
     }
 
+    // Adaptador para la cabecera
+    private class HeaderAdapter extends RecyclerView.Adapter<HeaderAdapter.VH> {
+        private final LayoutInflater inflater;
+        HeaderAdapter(Context ctx) {
+            inflater = LayoutInflater.from(ctx);
+        }
 
+        @NonNull
+        @Override
+        public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = inflater.inflate(R.layout.partial_filters_row, parent, false);
+            return new VH(v);
+        }
 
+        @Override
+        public void onBindViewHolder(@NonNull VH h, int position) {
+            h.filterSwitch.setChecked(showFavoritesOnly);
+            h.filterSwitch.setOnCheckedChangeListener((btn, checked) -> {
+                showFavoritesOnly = checked;
+                prefs.edit().putBoolean("show_favorites_only", checked).apply();
+                applyFilterSort();
+                songAdapter.submitList(new ArrayList<>(filteredSongs));
+            });
 
+            String label = ("title".equals(sortCriterion) ? "TITLE" : "DIFF")
+                    + (ascending ? " (ASC)" : " (DESC)");
+            h.sortButton.setText(label);
+            h.sortButton.setOnClickListener(v -> {
+                PopupMenu m = new PopupMenu(requireContext(), v);
+                m.getMenuInflater().inflate(R.menu.menu_sort, m.getMenu());
+                m.setOnMenuItemClickListener(item -> {
+                    int id = item.getItemId();
+                    if (id == R.id.sort_by_title_asc) {
+                        sortCriterion = "title";
+                        ascending     = true;
+                    } else if (id == R.id.sort_by_title_desc) {
+                        sortCriterion = "title";
+                        ascending     = false;
+                    } else if (id == R.id.sort_by_difficulty_asc) {
+                        sortCriterion = "diff";
+                        ascending     = true;
+                    } else if (id == R.id.sort_by_difficulty_desc) {
+                        sortCriterion = "diff";
+                        ascending     = false;
+                    }
+                    prefs.edit()
+                            .putString("sort_criterion", sortCriterion)
+                            .putBoolean("sort_order",   ascending)
+                            .apply();
+                    applyFilterSort();
+                    songAdapter.submitList(new ArrayList<>(filteredSongs));
+                    return true;
+                });
 
-    private void updatePage() {
-        int start = currentPage * SONGS_PER_PAGE;
+                m.show();
+            });
+        }
 
-        // Ensure the end index does not exceed the size of the filteredSongs list
-        int end = Math.min(start + SONGS_PER_PAGE, filteredSongs.size());
+        @Override public int getItemCount() { return 1; }
 
-        // Avoid invalid sublist ranges
-        if (start <= end && start >= 0) {
-            List<Song> paginatedSongs = filteredSongs.subList(start, end);
-            adapter.updateSongs(paginatedSongs);
-
-            pageIndicator.setText("Page " + (currentPage + 1) + " of " + ((filteredSongs.size() + SONGS_PER_PAGE - 1) / SONGS_PER_PAGE));
-
-            prevPageButton.setEnabled(currentPage > 0);
-            nextPageButton.setEnabled(end < filteredSongs.size());
-        } else {
-            Log.e(TAG, "Invalid pagination range: start=" + start + ", end=" + end);
+        class VH extends RecyclerView.ViewHolder {
+            final SwitchCompat filterSwitch;
+            final AppCompatButton sortButton;
+            VH(View itemView) {
+                super(itemView);
+                filterSwitch = itemView.findViewById(R.id.checkbox_favorites);
+                sortButton   = itemView.findViewById(R.id.sort_button);
+            }
         }
     }
 }
-

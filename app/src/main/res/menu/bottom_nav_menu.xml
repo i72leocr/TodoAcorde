@@ -3,16 +3,21 @@
         android:id="@+id/nav_songs"
         android:icon="@android:drawable/ic_media_play"
         android:title="Songs" />
+
     <item
-        android:id="@+id/nav_metronome"
-        android:icon="@android:drawable/ic_menu_manage"
-        android:title="Metronome" />
-    <item
-        android:id="@+id/nav_tuner"
+        android:id="@+id/nav_tools"
         android:icon="@android:drawable/ic_menu_compass"
         android:title="Tuner" />
+
     <item
-        android:id="@+id/nav_chord"
-        android:icon="@android:drawable/ic_menu_agenda"
-        android:title="Chords" />
+        android:id="@+id/nav_userdetails"
+        android:icon="@android:drawable/btn_radio"
+    android:title="Perfil" />
+
+    <item
+        android:id="@+id/nav_achievements"
+        android:icon="@drawable/ic_trophy_gold"
+        android:title="Logros" />
+
+
 </menu>
