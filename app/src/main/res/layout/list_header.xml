@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <merge xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:fontFamily="@font/roboto_mono_regular">
+    android:fontFamily="sans-serif">
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
@@ -25,6 +25,7 @@
             app:iconifiedByDefault="false"
             android:paddingHorizontal="16dp"
             android:paddingVertical="8dp"
-        android:fontFamily="@font/roboto_mono_medium" />
+            android:fontFamily="sans-serif"
+            android:textStyle="bold" />
     </androidx.cardview.widget.CardView>
 </merge>

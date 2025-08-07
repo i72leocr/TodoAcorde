@@ -10,14 +10,14 @@
     app:cardElevation="4dp"
     app:cardUseCompatPadding="true"
     app:cardPreventCornerOverlap="false"
-    android:fontFamily="@font/roboto_mono_regular">
+    android:fontFamily="sans-serif">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="12dp">
 
-        <!-- Título: Roboto Mono Bold 16sp -->
+        <!-- Título -->
         <TextView
             android:id="@+id/song_title"
             android:layout_width="0dp"
@@ -25,13 +25,14 @@
             android:text="Nombre de la canción"
             android:textSize="16sp"
             android:textColor="?attr/colorOnSurface"
-            android:fontFamily="@font/roboto_mono_bold"
+            android:fontFamily="sans-serif"
+            android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/info_container"
             app:layout_constraintHorizontal_bias="0" />
 
-        <!-- Autor: Roboto Mono Light 14sp -->
+        <!-- Autor -->
         <TextView
             android:id="@+id/song_author"
             android:layout_width="0dp"
@@ -39,14 +40,15 @@
             android:text="Autor de la canción"
             android:textSize="14sp"
             android:textColor="?attr/colorOnSurface"
-            android:fontFamily="@font/roboto_mono_light"
+            android:fontFamily="sans-serif"
+            android:textStyle="normal"
             android:layout_marginTop="4dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/song_title"
             app:layout_constraintEnd_toStartOf="@+id/info_container"
             app:layout_constraintHorizontal_bias="0" />
 
-        <!-- Contenedor de info a la derecha -->
+        <!-- Contenedor de info -->
         <LinearLayout
             android:id="@+id/info_container"
             android:layout_width="wrap_content"
@@ -57,7 +59,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="@id/song_author">
 
-            <!-- Dificultad: Roboto Mono Medium 12sp, color primario -->
+            <!-- Dificultad -->
             <TextView
                 android:id="@+id/song_difficulty"
                 android:layout_width="wrap_content"
@@ -65,14 +67,15 @@
                 android:text="Dif: Medio"
                 android:textSize="12sp"
                 android:textColor="?attr/colorPrimary"
-                android:fontFamily="@font/roboto_mono_medium"
+                android:fontFamily="sans-serif"
+                android:textStyle="normal"
                 android:layout_marginBottom="6dp" />
 
-            <!-- Favorito: icono con tint primario -->
+            <!-- Favorito -->
             <ImageButton
                 android:id="@+id/song_favorite"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:src="@drawable/heart_regular_full"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:tint="?attr/colorPrimary"

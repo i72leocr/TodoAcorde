@@ -14,182 +14,190 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:layout_marginBottom="24dp"
-    android:paddingBottom="16dp">
+        android:paddingBottom="16dp">
 
-    <!-- Título: Roboto Mono Bold 24sp -->
-    <TextView
-        android:id="@+id/song_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="Canción de ejemplo"
-        android:textColor="@android:color/black"
-        android:textSize="24sp"
-        android:fontFamily="@font/roboto_mono_bold" />
-
-    <!-- Autor: Roboto Mono Regular 16sp -->
-    <TextView
-        android:id="@+id/song_author"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="Autor de ejemplo"
-        android:textColor="@android:color/darker_gray"
-        android:textSize="16sp"
-        android:fontFamily="@font/roboto_mono_regular" />
-
-</LinearLayout>
-
-    <!-- MAIN CONTENT (Recycler + Diagrama+Score) -->
-<LinearLayout
-android:id="@+id/main_content_container"
-android:layout_width="match_parent"
-android:layout_height="0dp"
-android:layout_weight="0.6"
-android:orientation="horizontal"
-android:layout_marginBottom="4dp">
-
-<!-- Recycler ocupa peso 3 -->
-<androidx.recyclerview.widget.RecyclerView
-    android:id="@+id/recyclerLyricsChords"
-    android:layout_width="0dp"
-    android:layout_height="match_parent"
-    android:layout_weight="3"
-    tools:listitem="@layout/item_lyric_chord" />
-
-<!-- Columna derecha: ancho fijo 85dp -->
-<LinearLayout
-    android:id="@+id/diagram_right_column"
-    android:layout_width="85dp"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:layout_marginStart="8dp"
-    android:weightSum="1">
-
-    <!-- Diagrama + Progress -->
-    <LinearLayout
-        android:id="@+id/diagram_block"
-        android:layout_width="match_parent"
-        android:layout_height="329dp"
-        android:layout_weight="1"
-        android:gravity="top|center_horizontal"
-        android:orientation="vertical"
-        android:paddingTop="40dp">
-
+        <!-- Título -->
         <TextView
-            android:id="@+id/tvCurrentChordName"
+            android:id="@+id/song_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:fontFamily="@font/roboto_mono_semibold"
             android:gravity="center"
-            android:text="Am"
-            android:textSize="18sp" />
+            android:text="Canción de ejemplo"
+            android:textColor="@android:color/black"
+            android:textSize="24sp"
+            android:fontFamily="sans-serif"
+            android:textStyle="bold" />
 
-        <com.tuguitar.todoacorde.practice.ui.GridWithPointsView
-            android:id="@+id/gridWithPointsView"
-            android:layout_width="match_parent"
-            android:layout_height="88dp"
-            android:background="@android:color/white"
-            android:paddingLeft="3dp"
-            android:paddingTop="9dp" />
-
-        <ProgressBar
-            android:id="@+id/progressBar"
-            style="?android:attr/progressBarStyleHorizontal"
+        <!-- Autor -->
+        <TextView
+            android:id="@+id/song_author"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp" />
+            android:gravity="center"
+            android:text="Autor de ejemplo"
+            android:textColor="@android:color/darker_gray"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif"
+            android:textStyle="normal" />
+    </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvCountdown"
+    <!-- MAIN CONTENT -->
+    <LinearLayout
+        android:id="@+id/main_content_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.6"
+        android:orientation="horizontal"
+        android:layout_marginBottom="4dp">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerLyricsChords"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="3"
+            tools:listitem="@layout/item_lyric_chord" />
+
+        <LinearLayout
+            android:id="@+id/diagram_right_column"
+            android:layout_width="85dp"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:layout_marginStart="8dp"
+            android:weightSum="1">
+
+            <LinearLayout
+                android:id="@+id/diagram_block"
+                android:layout_width="match_parent"
+                android:layout_height="329dp"
+                android:layout_weight="1"
+                android:gravity="top|center_horizontal"
+                android:orientation="vertical"
+                android:paddingTop="40dp">
+
+                <TextView
+                    android:id="@+id/tvCurrentChordName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:gravity="center"
+                    android:text="Am"
+                    android:textSize="18sp"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold" />
+
+                <com.tuguitar.todoacorde.practice.ui.GridWithPointsView
+                    android:id="@+id/gridWithPointsView"
+                    android:layout_width="match_parent"
+                    android:layout_height="88dp"
+                    android:background="@android:color/white"
+                    android:paddingLeft="3dp"
+                    android:paddingTop="9dp" />
+
+                <ProgressBar
+                    android:id="@+id/progressBar"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp" />
+
+                <TextView
+                    android:id="@+id/tvCountdown"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:shadowColor="#80000000"
+                    android:shadowRadius="4"
+                    android:textColor="@android:color/holo_red_dark"
+                    android:textSize="100sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif"
+                    android:visibility="gone" />
+
+                <CheckBox
+                    android:id="@+id/cbMetronome"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Metrónomo"
+                    android:textSize="14sp"
+                    android:textStyle="normal"
+                    android:fontFamily="sans-serif"
+                    android:layout_marginEnd="16dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/score_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="end"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="40dp">
+
+                <TextView
+                    android:id="@+id/tvBestScore"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="left"
+                    android:text="Mejor Puntaje: 100"
+                    android:textColor="@android:color/black"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="normal" />
+
+                <TextView
+                    android:id="@+id/tvLastScore"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="left"
+                    android:text="Último Puntaje: 100"
+                    android:textColor="@android:color/black"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="normal" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- BOTTOM CONTROLS -->
+    <LinearLayout
+        android:id="@+id/controls_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.04"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <Switch
+            android:id="@+id/switchMode"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:fontFamily="monospace"
-            android:shadowColor="#80000000"
-            android:shadowRadius="4"
-            android:textColor="@android:color/holo_red_dark"
-            android:textSize="100sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
+            android:layout_marginEnd="16dp"
+            android:text="Sincronizado"
+            android:textSize="14sp"
+            android:textStyle="normal"
+            android:fontFamily="sans-serif" />
 
-    </LinearLayout>
-
-    <!-- SCORE -->
-    <LinearLayout
-        android:id="@+id/score_container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="end"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="40dp">
-
-        <TextView
-            android:id="@+id/tvBestScore"
-            android:layout_width="match_parent"
+        <View
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/roboto_mono_light"
-            android:gravity="left"
-            android:text="Mejor Puntaje: 100"
-            android:textColor="@android:color/black"
-            android:textSize="11sp" />
+            android:layout_weight="1" />
 
-        <TextView
-            android:id="@+id/tvLastScore"
-            android:layout_width="match_parent"
+        <Spinner
+            android:id="@+id/spinnerSpeed"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/roboto_mono_extralight"
-            android:gravity="left"
-            android:text="Último Puntaje: 100"
-            android:textColor="@android:color/black"
-            android:textSize="10sp" />
+            android:entries="@array/speed_options"
+            android:visibility="visible" />
 
+        <Button
+            android:id="@+id/btnStartStopPractice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:text="Empezar"
+            android:textSize="16sp"
+            android:textStyle="normal"
+            android:fontFamily="sans-serif" />
     </LinearLayout>
 </LinearLayout>
-</LinearLayout>
-
-    <!-- CONTROLES INFERIORES -->
-<LinearLayout
-android:id="@+id/controls_container"
-android:layout_width="match_parent"
-android:layout_height="0dp"
-android:layout_weight="0.04"
-android:gravity="center_vertical"
-android:orientation="horizontal">
-
-    <Switch
-        android:id="@+id/switchMode"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:fontFamily="@font/roboto_mono_medium"
-        android:text="Sincronizado"
-        android:textSize="14sp" />
-
-<View
-    android:layout_width="0dp"
-    android:layout_height="wrap_content"
-    android:layout_weight="1" />
-
-<Spinner
-    android:id="@+id/spinnerSpeed"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:entries="@array/speed_options"
-    android:visibility="visible" />
-
-<Button
-    android:id="@+id/btnStartStopPractice"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:paddingLeft="12dp"
-    android:paddingRight="12dp"
-    android:text="Empezar"
-    android:textSize="16sp"
-    android:fontFamily="@font/roboto_mono_medium" />
-
-</LinearLayout>
-
-    </LinearLayout>

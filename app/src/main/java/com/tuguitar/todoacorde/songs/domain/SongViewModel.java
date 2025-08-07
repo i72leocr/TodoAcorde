@@ -15,6 +15,7 @@ import com.tuguitar.todoacorde.songs.data.SongRepository;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -33,6 +34,7 @@ public class SongViewModel extends ViewModel {
 
     // Expuesto al UI
     private final MediatorLiveData<List<Song>> filteredSongs = new MediatorLiveData<>();
+    private final MutableLiveData<Map<Integer, String>> difficultyMap = new MutableLiveData<>();
 
     // Estado local
     private final MutableLiveData<String>  searchQuery    = new MutableLiveData<>("");
@@ -61,12 +63,8 @@ public class SongViewModel extends ViewModel {
         LiveData<List<Song>> baseSongs = repository.getAllSongs();
         LiveData<List<Integer>> favIds  = repository.getFavoriteIdsLive(userId);
 
-        songsWithFav.addSource(baseSongs, list ->
-                combineFlags(list, favIds.getValue(), songsWithFav)
-        );
-        songsWithFav.addSource(favIds, ids ->
-                combineFlags(baseSongs.getValue(), ids, songsWithFav)
-        );
+        songsWithFav.addSource(baseSongs, list -> combineFlags(list, favIds.getValue(), songsWithFav));
+        songsWithFav.addSource(favIds, ids -> combineFlags(baseSongs.getValue(), ids, songsWithFav));
 
         // 2) Observamos songsWithFav + filtros para calcular filteredSongs
         filteredSongs.addSource(songsWithFav, list -> applyAll());
@@ -74,11 +72,18 @@ public class SongViewModel extends ViewModel {
         filteredSongs.addSource(showFavorites,  f    -> applyAll());
         filteredSongs.addSource(sortCriterion,  c    -> applyAll());
         filteredSongs.addSource(ascending,      a    -> applyAll());
+
+        // 3) Inicializamos el map de dificultades
+        loadDifficultyMap();
     }
 
     /** Resultado final que observa la UI */
     public LiveData<List<Song>> getFilteredSongs() {
         return filteredSongs;
+    }
+
+    public LiveData<Map<Integer, String>> getDifficultyMap() {
+        return difficultyMap;
     }
 
     public void setSearchQuery(String query) {
@@ -100,21 +105,15 @@ public class SongViewModel extends ViewModel {
         ascending.setValue(asc);
     }
 
-    /**
-     * Toggle optimista: actualiza Room y modifica la lista en memoria inmediatamente.
-     */
     public void toggleFavorite(int songId, boolean isFavorite) {
-        // 1) Persistencia en background
         repository.toggleFavorite(userId, songId, isFavorite);
 
-        // 2) Optimistic update
         List<Song> current = songsWithFav.getValue();
         if (current == null) return;
 
         List<Song> updated = new ArrayList<>(current.size());
         for (Song s : current) {
             if (s.getId() == songId) {
-                // Usamos el constructor de copia y luego cambiamos el flag
                 Song copy = new Song(s);
                 copy.setFavorite(isFavorite);
                 updated.add(copy);
@@ -171,8 +170,14 @@ public class SongViewModel extends ViewModel {
             }
             temp.sort(cmp);
 
-            // Publicamos el resultado de vuelta en el hilo principal
             ((MediatorLiveData<List<Song>>) filteredSongs).postValue(temp);
+        });
+    }
+
+    private void loadDifficultyMap() {
+        AppExecutors.getInstance().diskIO().execute(() -> {
+            Map<Integer, String> map = repository.getDifficultyMap();
+            difficultyMap.postValue(map);
         });
     }
 }

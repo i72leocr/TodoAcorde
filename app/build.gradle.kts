@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.androidx.cardview)
     implementation(libs.transport.runtime)
+    implementation(libs.androidx.navigation.fragment)
     annotationProcessor("androidx.room:room-compiler:2.5.0")
     implementation("androidx.room:room-ktx:2.4.2")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.0")

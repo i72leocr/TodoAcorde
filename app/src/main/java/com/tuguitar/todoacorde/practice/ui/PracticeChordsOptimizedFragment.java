@@ -1,5 +1,7 @@
 package com.tuguitar.todoacorde.practice.ui;
 
+import static androidx.navigation.fragment.FragmentKt.findNavController;
+
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -12,6 +14,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.Switch;
@@ -27,6 +30,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.snackbar.Snackbar;
+import com.tuguitar.todoacorde.MainContainerActivity;
 import com.tuguitar.todoacorde.R;
 import com.tuguitar.todoacorde.songs.data.SongChordWithInfo;
 import com.tuguitar.todoacorde.practice.data.SongUserSpeed;
@@ -34,6 +38,12 @@ import com.tuguitar.todoacorde.practice.domain.PracticeViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.AlertDialog;
+import androidx.navigation.fragment.NavHostFragment;
+
+
 
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -57,6 +67,8 @@ public class PracticeChordsOptimizedFragment extends Fragment {
     private TextView tvBest;
     private TextView tvLast;
     private TextView tvCountdown;
+    private CheckBox cbMetronome;
+
 
     private final List<SongChordWithInfo> chordInfoCache = new ArrayList<>();
 
@@ -68,10 +80,22 @@ public class PracticeChordsOptimizedFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_practice_chords_optimized, container, false);
     }
 
+    private OnBackPressedCallback exitCallback;
+
     @Override
     public void onViewCreated(@NonNull View view,
                               @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        // Inicializar el OnBackPressedCallback deshabilitado
+        exitCallback = new OnBackPressedCallback(false) {
+            @Override
+            public void handleOnBackPressed() {
+                showExitPracticeDialog();
+            }
+        };
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), exitCallback);
+
         // 1) Obtain the ViewModel via Hilt
         viewModel = new ViewModelProvider(this).get(PracticeViewModel.class);
 
@@ -87,7 +111,7 @@ public class PracticeChordsOptimizedFragment extends Fragment {
         observeCorrectIndices();
         observeProgress();
         observeScoreEvent();
-        observeRunningState();
+        observeRunningState();  // Aquí dentro se activa/desactiva el callback
         setupStartStopButton();
 
         // 3) Initialize practice with the provided songId argument
@@ -127,9 +151,14 @@ public class PracticeChordsOptimizedFragment extends Fragment {
                 tvCountdown.setVisibility(View.GONE);
             }
         });
-        viewModel.getIsCountingDown().observe(getViewLifecycleOwner(), counting -> {
-            btnStartStop.setEnabled(!Boolean.TRUE.equals(counting));
+
+        viewModel.isActive().observe(getViewLifecycleOwner(), active -> {
+            if (requireActivity() instanceof MainContainerActivity) {
+                ((MainContainerActivity) requireActivity()).setPracticeRunning(Boolean.TRUE.equals(active));
+            }
+            btnStartStop.setEnabled(!Boolean.TRUE.equals(active));
         });
+
         viewModel.getCountdownFinished().observe(getViewLifecycleOwner(), event -> {
             if (event != null && Boolean.TRUE.equals(event.getIfNotHandled())) {
                 toggleDetection(); // start after countdown finishes
@@ -145,12 +174,13 @@ public class PracticeChordsOptimizedFragment extends Fragment {
                 spinnerSpeed.setSelection(bestUnlockedPos, false);
                 spinnerSpeed.setOnItemSelectedListener(speedSpinnerListener());
             }
-            // Ensure speed factor reflects the best unlocked speed
             viewModel.setSpeedFactor(bestUnlockedPos == 0 ? 0.5 : bestUnlockedPos == 1 ? 0.75 : 1.0);
         });
+
         // Set initial spinner listener
         spinnerSpeed.setOnItemSelectedListener(speedSpinnerListener());
     }
+
 
     private void bindViews(View root) {
         tvSongTitle        = root.findViewById(R.id.song_title);
@@ -168,6 +198,7 @@ public class PracticeChordsOptimizedFragment extends Fragment {
         spinnerSpeed       = root.findViewById(R.id.spinnerSpeed);
         progressBar        = root.findViewById(R.id.progressBar);
         tvCountdown        = root.findViewById(R.id.tvCountdown);
+        cbMetronome  = root.findViewById(R.id.cbMetronome);  // Nuevo: checkbox metrónomo
 
         progressBar.setIndeterminate(false);
         progressBar.setMax(100);
@@ -260,12 +291,20 @@ public class PracticeChordsOptimizedFragment extends Fragment {
 
     private void observeRunningState() {
         viewModel.isRunning.observe(getViewLifecycleOwner(), running -> {
+            boolean isActive = Boolean.TRUE.equals(running);  // ← Esto debe ir primero
             switchMode.setEnabled(!Boolean.TRUE.equals(running));
             spinnerSpeed.setEnabled(!Boolean.TRUE.equals(running));
+            cbMetronome.setEnabled(!Boolean.TRUE.equals(running));
             if (running != null && running) {
                 btnStartStop.setText("Terminar");
             } else {
                 btnStartStop.setText("Empezar");
+            }
+
+
+            // Activar o desactivar el callback según el estado de práctica
+            if (exitCallback != null) {
+                exitCallback.setEnabled(isActive);
             }
         });
     }
@@ -279,6 +318,7 @@ public class PracticeChordsOptimizedFragment extends Fragment {
             } else {
                 Boolean running = viewModel.isRunning.getValue();
                 if (running == null || !running) {
+                    viewModel.setMetronomeEnabled(cbMetronome.isChecked());
                     // Start with a countdown if not already running
                     viewModel.startCountdown();
                 } else {
@@ -331,6 +371,24 @@ public class PracticeChordsOptimizedFragment extends Fragment {
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         };
+    }
+
+    private void showExitPracticeDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("¿Salir de la práctica?")
+                .setMessage("Si sales, perderás tu progreso actual. ¿Deseas continuar?")
+                .setPositiveButton("Salir", (dialog, which) -> {
+                    viewModel.endPractice();
+                    ((MainContainerActivity) requireActivity()).setPracticeRunning(false);
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+    public void terminatePracticeFromActivity() {
+        if (viewModel != null) {
+            viewModel.endPractice();
+        }
     }
 
     @Override

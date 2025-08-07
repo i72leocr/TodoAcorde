@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.tuguitar.todoacorde.achievements.ui.AchievementFragment;
 import com.tuguitar.todoacorde.audio.ui.AudioToolsFragment;
+import com.tuguitar.todoacorde.practice.ui.PracticeChordsOptimizedFragment;
 import com.tuguitar.todoacorde.scales.ui.ScaleTrainerFragment;
 import com.tuguitar.todoacorde.songs.ui.SongFragment;
 
@@ -119,12 +120,20 @@ public class MainContainerActivity extends AppCompatActivity implements OnChordC
                 .setTitle("Confirmación")
                 .setMessage("¿Deseas parar la práctica?")
                 .setPositiveButton("Sí", (dialog, which) -> {
-                    isPracticeRunning = false; // Reset the flag
-                    navigateToSelectedFragment(item); // Proceed with navigation
+                    isPracticeRunning = false;
+
+                    // Buscar el fragmento activo y llamar a endPractice si aplica
+                    Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+                    if (current instanceof PracticeChordsOptimizedFragment) {
+                        ((PracticeChordsOptimizedFragment) current).terminatePracticeFromActivity();
+                    }
+
+                    navigateToSelectedFragment(item);
                 })
                 .setNegativeButton("No", null)
                 .show();
     }
+
 
     @Override
     public void onChordClassificationSelected(String classificationType, String classificationValue) {

@@ -12,8 +12,10 @@ import androidx.lifecycle.ViewModel;
 
 import com.tuguitar.todoacorde.LineItem;
 import com.tuguitar.todoacorde.SongWithDetails;
+import com.tuguitar.todoacorde.metronome.domain.MetronomeManager;
 import com.tuguitar.todoacorde.practice.data.PracticeRepository;
 import com.tuguitar.todoacorde.practice.data.SongUserSpeed;
+import com.tuguitar.todoacorde.songs.data.Song;
 import com.tuguitar.todoacorde.songs.data.SongChordWithInfo;
 
 import java.util.HashSet;
@@ -27,6 +29,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel;
 @HiltViewModel
 public class PracticeViewModel extends ViewModel implements PracticeSessionManager.PracticeSessionCallbacks {
     private static final String TAG = "PracticeViewModel";
+    private final MetronomeManager metronomeManager;
+    private boolean metronomeEnabled = false;
     private static final int USER_ID = 1;
 
     public enum Mode { FREE, SYNCHRONIZED }
@@ -88,14 +92,21 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
     // Best/last score LiveData
     public final LiveData<Integer> bestScore;
     public final LiveData<Integer> lastScore;
+    private final MediatorLiveData<Boolean> isActive = new MediatorLiveData<>();
+
+    public LiveData<Boolean> isActive() {
+        return isActive;
+    }
 
     @Inject
     public PracticeViewModel(@NonNull PracticeRepository repo,
                              @NonNull SequenceManager sequenceManager,
-                             @NonNull PracticeSessionManager practiceSessionManager) {
+                             @NonNull PracticeSessionManager practiceSessionManager, MetronomeManager metronomeManager) {
         this.repo = repo;
         this.sequenceManager = sequenceManager;
         this.practiceSessionManager = practiceSessionManager;
+        this.metronomeManager = metronomeManager;
+
         // Attach this ViewModel as callback listener to the PracticeSessionManager
         practiceSessionManager.setCallbacks(this);
 
@@ -105,6 +116,12 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
             return Transformations.switchMap(_speedFactor, sp ->
                     Transformations.switchMap(_songId, id -> repo.getSongWithDetails(id))
             );
+        });
+
+        isActive.addSource(isRunning, r -> isActive.setValue(Boolean.TRUE.equals(r)));
+        isActive.addSource(isCountingDown, d -> {
+            boolean cur = isActive.getValue() != null && isActive.getValue();
+            isActive.setValue(cur || Boolean.TRUE.equals(d));
         });
         // (We will set _songId in initForSong; using a separate internal MutableLiveData for songId)
         sequenceWithInfo = Transformations.switchMap(_songId, id -> repo.getChordsWithInfoForSong(id));
@@ -118,6 +135,8 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
                 Transformations.switchMap(_speedFactor, sp ->
                         repo.getLastScore(songId, USER_ID, sp.floatValue())
                 ));
+
+
     }
 
     // Internal MutableLiveData for selected song ID
@@ -134,6 +153,10 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
 
     public LiveData<List<SongChordWithInfo>> getSequenceWithInfo() {
         return sequenceWithInfo;
+    }
+    // Nuevo: setter para la preferencia de metrónomo
+    public void setMetronomeEnabled(boolean enabled) {
+        metronomeEnabled = enabled;
     }
 
     /** Initialize the ViewModel for a given song. Should be called from the UI (Fragment) with the songId. */
@@ -167,6 +190,28 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
         List<SongChordWithInfo> chordInfoList = sequenceWithInfo.getValue();
         double speed = _speedFactor.getValue() != null ? _speedFactor.getValue() : 1.0;
         practiceSessionManager.startSession(_songId.getValue(), modeValue, chordInfoList, speed);
+
+        // Nuevo: si el metrónomo está habilitado, iniciarlo con BPM y compás de la canción
+        if (metronomeEnabled) {
+            SongWithDetails details = songDetails.getValue();
+            if (details != null && details.song != null) {
+                Song song = details.song;
+                int bpm = song.getBpm();
+                String measureStr = song.getMeasure();
+                int beatsPerMeasure = 4;
+                try {
+                    if (measureStr != null && measureStr.contains("/")) {
+                        // tomar la parte numérica antes de la barra (ej: "4/4" -> 4)
+                        beatsPerMeasure = Integer.parseInt(measureStr.split("/")[0]);
+                    }
+                } catch (NumberFormatException e) {
+                    // si falla, usar 4 por defecto
+                    beatsPerMeasure = 4;
+                }
+                // Iniciar metronomo con acento en primer tiempo
+                metronomeManager.start(bpm, beatsPerMeasure, true, null);
+            }
+        }
     }
 
     /** Stop the ongoing practice session. */
@@ -175,6 +220,7 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
         Log.d(TAG, "Deteniendo práctica");
         _isRunning.setValue(false);
         practiceSessionManager.stopSession();
+        metronomeManager.stop();              // Nuevo: detener metrónomo
         _progressPercent.setValue(0);
     }
 
@@ -247,6 +293,32 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
         _correctIndices.postValue(newSet);
     }
 
+    @Override
+    protected void onCleared() {
+        super.onCleared();
+        // Detener metrónomo por seguridad y liberar los sonidos
+        metronomeManager.stop();
+        metronomeManager.releaseSound();
+    }
+
+    /** Finaliza completamente la práctica (sin mostrar puntaje). */
+    public void endPractice() {
+        Log.d(TAG, "Finalizando práctica por salida del usuario.");
+        cancelCountdown();                          // Detiene countdown si está activo
+        metronomeManager.stop();                    // Detiene metrónomo
+        practiceSessionManager.stopSession();       // Detiene la sesión real
+        sequenceManager.reset();                    // Limpia la secuencia en curso
+
+        _isRunning.setValue(false);                 // Actualiza estado
+        _progressPercent.setValue(0);
+        _currentIndex.setValue(0);
+        _correctIndices.setValue(new HashSet<>());
+        _expectedChord.setValue("");
+        _currentLineIndex.setValue(0);
+    }
+
+
+
     /** Callback from PracticeSessionManager to update the progress percentage for synchronized mode. */
     @Override
     public void onProgressUpdated(int percent) {
@@ -260,6 +332,7 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
         _scoreEvent.postValue(new Event<>(finalScore));
         // Stop session and reset running state
         practiceSessionManager.stopSession();
+        metronomeManager.stop();            // Nuevo: detener metrónomo al finalizar sesión
         _isRunning.postValue(false);
         _progressPercent.postValue(0);
     }

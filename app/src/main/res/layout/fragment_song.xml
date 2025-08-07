@@ -4,22 +4,23 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:paddingBottom="16dp"
+    android:fontFamily="sans-serif">
 
-    android:fontFamily="@font/roboto_mono_regular">
+    <include
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        layout="@layout/list_header"
+        android:fontFamily="sans-serif"
+        android:textStyle="bold" />
 
-<include
-android:layout_width="match_parent"
-android:layout_height="wrap_content"
-layout="@layout/list_header"
-android:fontFamily="@font/roboto_mono_medium" />
-
-<androidx.recyclerview.widget.RecyclerView
-android:id="@+id/song_list"
-android:layout_width="match_parent"
-android:layout_height="0dp"
-android:layout_weight="1"
-android:clipToPadding="false"
-android:paddingTop="0dp"
-android:paddingBottom="8dp"
-android:fontFamily="@font/roboto_mono_light" />
-    </LinearLayout>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/song_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingTop="0dp"
+        android:paddingBottom="8dp"
+        android:fontFamily="sans-serif"
+        android:textStyle="normal" />
+</LinearLayout>

@@ -5,12 +5,11 @@
     android:layout_height="wrap_content"
     android:padding="0dp">
 
-    <!-- Línea de acordes: Roboto Mono Semibold para destacar sobre la letra -->
     <TextView
         android:id="@+id/tvChordLine"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fontFamily="@font/roboto_mono_semibold"
+        android:fontFamily="monospace"
         android:textSize="14sp"
         android:includeFontPadding="false"
         android:padding="0dp"
@@ -19,12 +18,11 @@
         android:textIsSelectable="false"
         android:textAllCaps="false"/>
 
-    <!-- Línea de letra: Roboto Mono Regular para lectura cómoda -->
     <TextView
         android:id="@+id/tvLyricLine"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fontFamily="@font/roboto_mono_regular"
+        android:fontFamily="monospace"
         android:textSize="14sp"
         android:layout_marginTop="2dp"/>
 </LinearLayout>

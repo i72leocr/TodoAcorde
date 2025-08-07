@@ -5,6 +5,7 @@ import android.util.Pair;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.tuguitar.todoacorde.Chord;
 import com.tuguitar.todoacorde.IChordDetector;
@@ -35,6 +36,8 @@ public class SequenceManager {
     private LiveData<List<SongChord>> songChords;
     private LiveData<List<SongLyric>> lyricLines;
 
+    private final MutableLiveData<Integer> currentIndex = new MutableLiveData<>(0);
+    private final MutableLiveData<Integer> currentLineIndex = new MutableLiveData<>(0);
     @Inject
     public SequenceManager(PracticeRepository repo, IChordDetector chordDetector) {
         this.repo = repo;
@@ -143,5 +146,10 @@ public class SequenceManager {
 
         lineItems.setValue(items);
         Log.d(TAG, "LineItems rebuild: " + items.size() + " lines");
+    }
+    public void reset() {
+        currentIndex.setValue(0);
+        currentLineIndex.setValue(0);
+        lineItems.setValue(null);
     }
 }

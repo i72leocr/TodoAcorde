@@ -131,8 +131,12 @@ public class LyricChordAdapter
                         span.start, span.end,
                         Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                 );
+                spannable.setSpan(
+                        new ForegroundColorSpan(Color.parseColor("#FFA500")),
+                        span.start, span.end,
+                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                );
             }
-
             // verde si está en correctIndices
             if (correctIndices != null && correctIndices.contains(gIdx)) {
                 spannable.setSpan(
