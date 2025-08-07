@@ -10,4 +10,7 @@
     <color name="primary">#3F51B5</color>
     <color name="white">#FFFFFF</color>
     <color name="purple">#3F51B5</color>
+    <!-- Fondo transparente para el plate del SearchView -->
+    <color name="search_plate_bg">#00000000</color>
+    <!-- Otros colores globales ya definidos -->
 </resources>

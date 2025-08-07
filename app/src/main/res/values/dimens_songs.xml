@@ -1,0 +1,8 @@
+<resources>
+    <!-- Padding horizontal del SearchView -->
+    <dimen name="search_padding_horizontal">16dp</dimen>
+    <!-- Margen start del icono de búsqueda -->
+    <dimen name="search_icon_margin">0dp</dimen>
+    <!-- Altura de la cabecera (si la necesitas) -->
+    <dimen name="header_row_height">48dp</dimen>
+</resources>
