@@ -1,10 +1,6 @@
 package com.tuguitar.todoacorde.metronome.ui;
 
-import android.media.AudioAttributes;
-import android.media.SoundPool;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,34 +12,28 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.tuguitar.todoacorde.R;
+import com.tuguitar.todoacorde.metronome.domain.MetronomeViewModel;
 
+import dagger.hilt.android.AndroidEntryPoint;
+
+@AndroidEntryPoint
 public class MetronomeFragment extends Fragment {
 
     private TextView tvBpm;
-    private ImageButton btnStartStop, btnIncrease, btnDecrease;
+    private ImageButton btnStartStop;
+    private ImageButton btnIncrease, btnDecrease;
     private SeekBar seekBarBpm;
     private ChipGroup chipGroupTimeSignature;
     private LinearLayout beatIndicators;
     private SwitchMaterial switchAccentFirst;
 
-    private int bpm = 100;
-    private int beatsPerMeasure = 4;
-    private boolean isRunning = false;
-    private boolean accentFirstBeat = true;
-
-    private Handler handler;
-    private Runnable beatRunnable;
-    private int currentBeat = 0;
-
-    private SoundPool soundPool;
-    private int tickSoundId;
-    private int tickUpSoundId;
-    private boolean soundLoaded = false;
+    private MetronomeViewModel metronomeViewModel;
 
     @Nullable
     @Override
@@ -52,6 +42,10 @@ public class MetronomeFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_metronome, container, false);
 
+        // ✅ Inicializar ViewModel al inicio
+        metronomeViewModel = new ViewModelProvider(this).get(MetronomeViewModel.class);
+
+        // Inicializar vistas
         tvBpm = view.findViewById(R.id.tvBpm);
         btnStartStop = view.findViewById(R.id.btnStartStop);
         btnIncrease = view.findViewById(R.id.btnIncrease);
@@ -60,82 +54,116 @@ public class MetronomeFragment extends Fragment {
         chipGroupTimeSignature = view.findViewById(R.id.chipGroupTimeSignature);
         beatIndicators = view.findViewById(R.id.beatIndicators);
         switchAccentFirst = view.findViewById(R.id.switchAccentFirst);
+
+        // Setup inicial
         btnStartStop.setImageResource(R.drawable.ic_play_24);
-
-        tvBpm.setText(bpm + " BPM");
         seekBarBpm.setMax(218);
-        seekBarBpm.setProgress(bpm);
+        seekBarBpm.setProgress(100);
+        tvBpm.setText("100 BPM");
+        switchAccentFirst.setChecked(true);
 
-        handler = new Handler(Looper.getMainLooper());
-        initSoundPool();
-
+        // SeekBar listener
         seekBarBpm.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                bpm = Math.max(20, progress);
-                tvBpm.setText(bpm + " BPM");
+            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                int bpmValue = Math.max(20, progress);
+                tvBpm.setText(bpmValue + " BPM");
+                metronomeViewModel.setBpm(bpmValue);
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
+        // Botones + y -
         btnIncrease.setOnClickListener(v -> {
-            bpm = Math.min(218, bpm + 1);
-            seekBarBpm.setProgress(bpm);
-            tvBpm.setText(bpm + " BPM");
+            int current = seekBarBpm.getProgress();
+            int newBpm = Math.min(218, current + 1);
+            seekBarBpm.setProgress(newBpm);
+            tvBpm.setText(newBpm + " BPM");
+            metronomeViewModel.setBpm(newBpm);
         });
 
         btnDecrease.setOnClickListener(v -> {
-            bpm = Math.max(20, bpm - 1);
-            seekBarBpm.setProgress(bpm);
-            tvBpm.setText(bpm + " BPM");
+            int current = seekBarBpm.getProgress();
+            int newBpm = Math.max(20, current - 1);
+            seekBarBpm.setProgress(newBpm);
+            tvBpm.setText(newBpm + " BPM");
+            metronomeViewModel.setBpm(newBpm);
         });
 
+        // Selector de compás
         chipGroupTimeSignature.setOnCheckedChangeListener((group, checkedId) -> {
             Chip chip = group.findViewById(checkedId);
-            if (chip != null && chip.getText() != null) {
+            if (chip != null) {
+                String text = chip.getText().toString();
                 try {
-                    beatsPerMeasure = Integer.parseInt(chip.getText().toString().split("/")[0]);
+                    int beats = Integer.parseInt(text.split("/")[0]);
+                    metronomeViewModel.setBeatsPerMeasure(beats);
+                    updateBeatIndicators(beats);
                 } catch (NumberFormatException e) {
-                    beatsPerMeasure = 4;
+                    metronomeViewModel.setBeatsPerMeasure(4);
+                    updateBeatIndicators(4);
                 }
-                updateBeatIndicators();
             }
         });
+
+        // ✅ Establecer compás por defecto después de inicializar ViewModel
         chipGroupTimeSignature.check(R.id.chip4_4);
+        updateBeatIndicators(4);
 
-        switchAccentFirst.setChecked(true);
-        switchAccentFirst.setOnCheckedChangeListener((button, isChecked) -> accentFirstBeat = isChecked);
-
-        btnStartStop.setOnClickListener(v -> {
-            if (isRunning) stopMetronome();
-            else startMetronome();
+        // Switch acento primer tiempo
+        switchAccentFirst.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            metronomeViewModel.setAccentFirst(isChecked);
         });
 
-        updateBeatIndicators();
+        // Botón play/pause
+        btnStartStop.setOnClickListener(v -> {
+            if (metronomeViewModel.isMetronomeRunning()) {
+                stopMetronome();
+            } else {
+                startMetronome();
+            }
+        });
+
         return view;
     }
 
-    private void initSoundPool() {
-        AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_MEDIA)
-                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                .build();
+    @Override
+    public void onViewCreated(@NonNull View view,
+                              @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-        soundPool = new SoundPool.Builder()
-                .setMaxStreams(1)
-                .setAudioAttributes(audioAttributes)
-                .build();
-
-        tickSoundId = soundPool.load(requireContext(), R.raw.tick, 1);
-        tickUpSoundId = soundPool.load(requireContext(), R.raw.tick_up, 1);
-
-        soundPool.setOnLoadCompleteListener((pool, id, status) -> soundLoaded = (status == 0));
+        // Observador del beat actual
+        metronomeViewModel.getCurrentBeat().observe(getViewLifecycleOwner(), beatIndex -> {
+            if (beatIndex != null) {
+                highlightCurrentBeat(beatIndex);
+            }
+        });
     }
 
-    private void updateBeatIndicators() {
+    private void startMetronome() {
+        metronomeViewModel.startMetronome();
+        btnStartStop.setImageResource(R.drawable.ic_pause_24);
+        btnIncrease.setEnabled(false);
+        btnDecrease.setEnabled(false);
+        seekBarBpm.setEnabled(false);
+        chipGroupTimeSignature.setEnabled(false);
+        switchAccentFirst.setEnabled(false);
+    }
+
+    private void stopMetronome() {
+        metronomeViewModel.stopMetronome();
+        btnStartStop.setImageResource(R.drawable.ic_play_24);
+        btnIncrease.setEnabled(true);
+        btnDecrease.setEnabled(true);
+        seekBarBpm.setEnabled(true);
+        chipGroupTimeSignature.setEnabled(true);
+        switchAccentFirst.setEnabled(true);
+        clearBeatIndicators();
+    }
+
+    private void updateBeatIndicators(int beats) {
         beatIndicators.removeAllViews();
-        for (int i = 0; i < beatsPerMeasure; i++) {
+        for (int i = 0; i < beats; i++) {
             View dot = new View(requireContext());
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(60, 60);
             params.setMargins(16, 0, 16, 0);
@@ -145,64 +173,23 @@ public class MetronomeFragment extends Fragment {
         }
     }
 
-    private void startMetronome() {
-        isRunning = true;
-        btnStartStop.setImageResource(R.drawable.ic_pause_24);
-
-        // Bloquear controles sin ocultar
-        btnIncrease.setEnabled(false);
-        btnDecrease.setEnabled(false);
-        seekBarBpm.setEnabled(false);
-        chipGroupTimeSignature.setEnabled(false);
-        switchAccentFirst.setEnabled(false);
-
-        currentBeat = 0;
-        double intervalMs = 60000.0 / bpm;
-
-        beatRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if (!isRunning) return;
-                if (soundLoaded) {
-                    int soundId = (accentFirstBeat && currentBeat == 0) ? tickUpSoundId : tickSoundId;
-                    soundPool.play(soundId, 1, 1, 0, 0, 1f);
-                }
-                highlightCurrentBeat();
-                currentBeat = (currentBeat + 1) % beatsPerMeasure;
-                handler.postDelayed(this, (long) intervalMs);
-            }
-        };
-        handler.post(beatRunnable);
-    }
-
-    private void stopMetronome() {
-        isRunning = false;
-        btnStartStop.setImageResource(R.drawable.ic_play_24);
-
-        // Desbloquear controles
-        btnIncrease.setEnabled(true);
-        btnDecrease.setEnabled(true);
-        seekBarBpm.setEnabled(true);
-        chipGroupTimeSignature.setEnabled(true);
-        switchAccentFirst.setEnabled(true);
-
-        handler.removeCallbacks(beatRunnable);
-        clearBeatIndicators();
-        currentBeat = 0;
-    }
-
-    private void highlightCurrentBeat() {
-        for (int i = 0; i < beatIndicators.getChildCount(); i++) {
+    private void highlightCurrentBeat(int currentBeatIndex) {
+        int count = beatIndicators.getChildCount();
+        for (int i = 0; i < count; i++) {
             View dot = beatIndicators.getChildAt(i);
-            int res = (accentFirstBeat && i == 0)
-                    ? (i == currentBeat ? R.drawable.circle_filled_strong : R.drawable.circle_unfilled)
-                    : (i == currentBeat ? R.drawable.circle_filled : R.drawable.circle_unfilled);
+            int res;
+            if (metronomeViewModel.isAccentFirst() && i == 0) {
+                res = (i == currentBeatIndex) ? R.drawable.circle_filled_strong : R.drawable.circle_unfilled;
+            } else {
+                res = (i == currentBeatIndex) ? R.drawable.circle_filled : R.drawable.circle_unfilled;
+            }
             dot.setBackgroundResource(res);
         }
     }
 
     private void clearBeatIndicators() {
-        for (int i = 0; i < beatIndicators.getChildCount(); i++) {
+        int count = beatIndicators.getChildCount();
+        for (int i = 0; i < count; i++) {
             beatIndicators.getChildAt(i).setBackgroundResource(R.drawable.circle_unfilled);
         }
     }
@@ -210,10 +197,6 @@ public class MetronomeFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        stopMetronome();
-        if (soundPool != null) {
-            soundPool.release();
-            soundPool = null;
-        }
+        metronomeViewModel.stopMetronome();
     }
 }

@@ -14,7 +14,7 @@ import com.tuguitar.todoacorde.ProgressionDetail;
 import com.tuguitar.todoacorde.ProgressionDetailDao;
 import com.tuguitar.todoacorde.ProgressionSession;
 import com.tuguitar.todoacorde.ProgressionSessionDao;
-import com.tuguitar.todoacorde.SongChordWithInfo;
+import com.tuguitar.todoacorde.songs.data.SongChordWithInfo;
 import com.tuguitar.todoacorde.SongWithDetails;
 import com.tuguitar.todoacorde.songs.data.SongChord;
 import com.tuguitar.todoacorde.songs.data.SongChordDao;

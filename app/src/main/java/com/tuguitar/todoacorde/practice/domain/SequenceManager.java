@@ -33,7 +33,7 @@ public class SequenceManager {
     private final MediatorLiveData<List<LineItem>> lineItems = new MediatorLiveData<>();
     private LiveData<List<Chord>> chordProfiles;
     private LiveData<List<SongChord>> songChords;
-    private LiveData<List<SpanInfo>> lyricLines; // asume exposición de las líricas por el repo
+    private LiveData<List<SongLyric>> lyricLines;
 
     @Inject
     public SequenceManager(PracticeRepository repo, IChordDetector chordDetector) {
@@ -41,53 +41,56 @@ public class SequenceManager {
         this.chordDetector = chordDetector;
     }
 
-    /**
-     * Debes llamar a initForSong(...) desde tu ViewModel una vez que tengas el songId.
-     */
     public void initForSong(int songId) {
-        // perfiles de acordes
         chordProfiles = repo.getAllChords();
-        // acordes con tiempo/posiciones
-        songChords   = repo.getChordsWithInfoForSong(songId);
-        // líneas de letra (para el layout de LineItem)
-        lyricLines   = repo.getLyricLinesForSong(songId);
+        songChords = repo.getChordsForSong(songId);
+        lyricLines = repo.getLyricsForSong(songId);
 
-        // combinar perfiles + acordes
+        // combinar perfiles + acordes con null check
         seqSource.addSource(chordProfiles, profs -> {
             chordDetector.setChordProfiles(profs);
-            seqSource.setValue(Pair.create(profs, songChords.getValue()));
-        });
-        seqSource.addSource(songChords, sc -> {
-            seqSource.setValue(Pair.create(chordProfiles.getValue(), sc));
+            List<SongChord> chords = songChords != null ? songChords.getValue() : null;
+            if (chords != null) {
+                seqSource.setValue(Pair.create(profs, chords));
+            }
         });
 
-        // generar LineItem
-        lineItems.addSource(seqSource, pair -> buildLineItems(pair.first, pair.second));
+        seqSource.addSource(songChords, sc -> {
+            List<Chord> profs = chordProfiles != null ? chordProfiles.getValue() : null;
+            if (profs != null) {
+                seqSource.setValue(Pair.create(profs, sc));
+            }
+        });
+
+        // reconstrucción segura
+        lineItems.addSource(seqSource, pair -> {
+            if (pair != null) {
+                buildLineItems(pair.first, pair.second);
+            }
+        });
+
         lineItems.addSource(lyricLines, __ -> {
-            // reconstruir cuando cambien también las líneas de letra
-            buildLineItems(seqSource.getValue().first, seqSource.getValue().second);
+            Pair<List<Chord>, List<SongChord>> pair = seqSource.getValue();
+            if (pair != null) {
+                buildLineItems(pair.first, pair.second);
+            }
         });
     }
 
-    /** Secuencia de nombres de acordes lista para detectar. */
     public LiveData<List<Chord>> getChordProfiles() {
         return chordProfiles;
     }
-    /** Secuencia de acordes con info (duraciones, posición). */
+
     public LiveData<List<SongChord>> getSongChords() {
         return songChords;
     }
-    /** Pares [(perfiles, acordes)] combinados. */
+
     public LiveData<Pair<List<Chord>, List<SongChord>>> getSeqSource() {
         return seqSource;
     }
-    /** Líneas renderizadas con acordes y texto. */
+
     public LiveData<List<LineItem>> getLineItems() {
         return lineItems;
-    }
-
-    private void buildSequenceAndIndexMap(List<Chord> profiles, List<SongChord> chords) {
-        // ya se maneja dentro de buildLineItems si es necesario
     }
 
     private void buildLineItems(List<Chord> profiles, List<SongChord> scList) {
@@ -96,11 +99,9 @@ public class SequenceManager {
             return;
         }
 
-        // mapa id→nombre acorde
         Map<Integer, String> nameById = new HashMap<>();
         for (Chord c : profiles) nameById.put(c.id, c.getName());
 
-        // ordenar acordes por letra
         List<SongChord> sorted = new ArrayList<>(scList);
         sorted.sort(Comparator
                 .comparingInt((SongChord sc) -> sc.lyricId)
@@ -109,9 +110,9 @@ public class SequenceManager {
 
         List<LineItem> items = new ArrayList<>();
         for (SongLyric lyric : lyricLines.getValue()) {
-            // construcción de buffer y spans
             String text = lyric.line != null ? lyric.line : "";
             int maxEnd = text.length();
+
             for (SongChord sc : sorted) {
                 if (sc.lyricId != lyric.id) continue;
                 String nm = nameById.get(sc.chordId);
@@ -119,9 +120,11 @@ public class SequenceManager {
                     maxEnd = Math.max(maxEnd, sc.positionInVerse + nm.length());
                 }
             }
+
             char[] buf = new char[maxEnd];
             Arrays.fill(buf, ' ');
             List<SpanInfo> spans = new ArrayList<>();
+
             for (int i = 0; i < sorted.size(); i++) {
                 SongChord sc = sorted.get(i);
                 if (sc.lyricId != lyric.id) continue;
@@ -134,6 +137,7 @@ public class SequenceManager {
                     spans.add(new SpanInfo(i, p, p + nm.length()));
                 }
             }
+
             items.add(new LineItem(new String(buf), text, spans));
         }
 
