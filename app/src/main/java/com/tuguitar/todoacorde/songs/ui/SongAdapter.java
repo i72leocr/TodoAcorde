@@ -1,6 +1,5 @@
 package com.tuguitar.todoacorde.songs.ui;
 
-import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,36 +14,46 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.tuguitar.todoacorde.R;
 import com.tuguitar.todoacorde.songs.data.Song;
 
-import java.util.function.Consumer;
-
 /**
  * Adapter para la lista de canciones.
  * Usa ListAdapter + DiffUtil para actualizaciones eficientes.
  */
 public class SongAdapter extends ListAdapter<Song, SongAdapter.SongVH> {
-    private final Context context;
-    private final Consumer<Song> onClick;
-    private final Consumer<Song> onFavoriteToggle;
+    private OnSongClickListener onClick;
+    private OnFavoriteClickListener onFavoriteToggle;
 
-    public SongAdapter(Context context,
-                       Consumer<Song> onClick,
-                       Consumer<Song> onFavoriteToggle) {
+    public interface OnSongClickListener {
+        void onSongClick(Song song);
+    }
+
+    public interface OnFavoriteClickListener {
+        void onFavoriteClick(Song song);
+    }
+
+    public SongAdapter(OnSongClickListener onClick,
+                       OnFavoriteClickListener onFavoriteToggle) {
         super(new DiffUtil.ItemCallback<Song>() {
-            @Override public boolean areItemsTheSame(@NonNull Song a, @NonNull Song b) {
+            @Override
+            public boolean areItemsTheSame(@NonNull Song a, @NonNull Song b) {
                 return a.getId() == b.getId();
             }
-            @Override public boolean areContentsTheSame(@NonNull Song a, @NonNull Song b) {
-                return a.equals(b);
+
+            @Override
+            public boolean areContentsTheSame(@NonNull Song a, @NonNull Song b) {
+                // Incluye isFavorite en la comparación para refrescar instantáneamente
+                return a.getTitle().equals(b.getTitle())
+                        && a.getAuthor().equals(b.getAuthor())
+                        && a.getDifficulty() == b.getDifficulty()
+                        && a.isFavorite() == b.isFavorite();
             }
         });
-        this.context = context;
         this.onClick = onClick;
         this.onFavoriteToggle = onFavoriteToggle;
     }
 
     @NonNull @Override
     public SongVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View v = LayoutInflater.from(context)
+        View v = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.list_item_song, parent, false);
         return new SongVH(v);
     }
@@ -66,8 +75,18 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongVH> {
             tvDifficulty = itemView.findViewById(R.id.song_difficulty);
             btnFavorite  = itemView.findViewById(R.id.song_favorite);
 
-            itemView.setOnClickListener(v -> onClick.accept(getItem(getAdapterPosition())));
-            btnFavorite.setOnClickListener(v -> onFavoriteToggle.accept(getItem(getAdapterPosition())));
+            itemView.setOnClickListener(v -> {
+                int pos = getBindingAdapterPosition();
+                if (pos != RecyclerView.NO_POSITION) {
+                    onClick.onSongClick(getItem(pos));
+                }
+            });
+            btnFavorite.setOnClickListener(v -> {
+                int pos = getBindingAdapterPosition();
+                if (pos != RecyclerView.NO_POSITION) {
+                    onFavoriteToggle.onFavoriteClick(getItem(pos));
+                }
+            });
         }
 
         void bind(Song song) {

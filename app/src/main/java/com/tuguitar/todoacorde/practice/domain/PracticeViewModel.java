@@ -15,18 +15,18 @@ import androidx.lifecycle.ViewModel;
 
 import com.tuguitar.todoacorde.Chord;
 import com.tuguitar.todoacorde.ChordDetectionListener;
+import com.tuguitar.todoacorde.IChordDetector;
+import com.tuguitar.todoacorde.LineItem;
+import com.tuguitar.todoacorde.SongChordWithInfo;
+import com.tuguitar.todoacorde.SongWithDetails;
+import com.tuguitar.todoacorde.SpanInfo;
 import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluatePerfectScoreAchievementUseCase;
 import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluateSpeedUnlockAchievementUseCase;
 import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluateUniqueChordsAchievementUseCase;
-import com.tuguitar.todoacorde.IChordDetector;
-import com.tuguitar.todoacorde.LineItem;
 import com.tuguitar.todoacorde.practice.data.PracticeDetail;
 import com.tuguitar.todoacorde.practice.data.PracticeRepository;
 import com.tuguitar.todoacorde.practice.data.PracticeSession;
-import com.tuguitar.todoacorde.SongChordWithInfo;
 import com.tuguitar.todoacorde.practice.data.SongUserSpeed;
-import com.tuguitar.todoacorde.SongWithDetails;
-import com.tuguitar.todoacorde.SpanInfo;
 import com.tuguitar.todoacorde.songs.data.SongChord;
 import com.tuguitar.todoacorde.songs.data.SongLyric;
 
@@ -44,21 +44,10 @@ import javax.inject.Inject;
 
 import dagger.hilt.android.lifecycle.HiltViewModel;
 
-/**
- * ViewModel para la práctica de acordes de una canción.
- * Soporta modo libre y sincronizado (por duración BPM/measure),
- * marca solo el primer acierto por ventana, expone progreso (%),
- * calcula un score final en % al terminar la práctica sincronizada
- * y ajusta la duración de cada acorde según un speedFactor (0.5×, 0.75×, 1×).
- */
 @HiltViewModel
 public class PracticeViewModel extends ViewModel implements ChordDetectionListener {
     private static final String TAG = "PracticeViewModel";
-
-    // Para evitar eventos duplicados al desbloquear velocidad
-    private final Set<String> unlockedSpeedNotifications = new HashSet<>();
-
-    private final Map<Integer, PracticeDetail> detailMap = new HashMap<>();
+    private static final int USER_ID = 1;
 
     public enum Mode { FREE, SYNCHRONIZED }
 
@@ -66,45 +55,44 @@ public class PracticeViewModel extends ViewModel implements ChordDetectionListen
     public LiveData<Mode> mode = _mode;
     public void setMode(Mode m) { _mode.setValue(m); }
 
-    /** Velocidad de reproducción: 0.5×, 0.75× o 1.0× */
     private final MutableLiveData<Double> _speedFactor = new MutableLiveData<>(1.0);
     public LiveData<Double> speedFactor = _speedFactor;
     public void setSpeedFactor(double f) { _speedFactor.setValue(f); }
 
-    private boolean windowDetected = false;
-    private int bpm;
-    private String measure;
-    private long sessionStartTime;
-    private long sessionEndTime;
-
     private final PracticeRepository repo;
-
+    private final IChordDetector chordDetector;
     private final EvaluateUniqueChordsAchievementUseCase uniqueUc;
     private final EvaluateSpeedUnlockAchievementUseCase speedUc;
     private final EvaluatePerfectScoreAchievementUseCase perfectUc;
 
-    private final IChordDetector chordDetector;
     private final Handler uiHandler = new Handler();
+    private final Map<Integer, PracticeDetail> detailMap = new HashMap<>();
+    private final Set<String> unlockedSpeedNotifications = new HashSet<>();
 
     private final MutableLiveData<Integer> _songId = new MutableLiveData<>();
-    private LiveData<List<Chord>> chordProfiles = null;
+    private LiveData<List<Chord>> chordProfiles;
     private final LiveData<List<SongChord>> songChords;
     public final LiveData<SongWithDetails> songDetails;
     private final LiveData<List<SongChordWithInfo>> sequenceWithInfo;
+
+    private final MediatorLiveData<Pair<List<Chord>,List<SongChord>>> seqSource = new MediatorLiveData<>();
+    private final MediatorLiveData<List<LineItem>> lineItems     = new MediatorLiveData<>();
     private final MediatorLiveData<SongUserSpeed> _unlockedSpeeds = new MediatorLiveData<>();
     public LiveData<SongUserSpeed> unlockedSpeeds = _unlockedSpeeds;
-    private final MediatorLiveData<Pair<List<Chord>,List<SongChord>>> seqSource = new MediatorLiveData<>();
-    private final MediatorLiveData<List<LineItem>> lineItems = new MediatorLiveData<>();
+
+    private LiveData<SongUserSpeed> unlockedSpeedsSource;
 
     private final List<String> sequence = new ArrayList<>();
     private final Map<Integer,Integer> chordGlobalIndexByPosition = new HashMap<>();
 
-    private final MutableLiveData<Boolean> _isRunning = new MutableLiveData<>(false);
-    public final LiveData<Boolean> isRunning = _isRunning;
+    private final MutableLiveData<Boolean> _isRunning    = new MutableLiveData<>(false);
+    public LiveData<Boolean> isRunning = _isRunning;
+
     private final MutableLiveData<Integer> _currentIndex = new MutableLiveData<>(0);
-    public final LiveData<Integer> currentIndex = _currentIndex;
+    public LiveData<Integer> currentIndex = _currentIndex;
+
     private final MutableLiveData<String> _expectedChord = new MutableLiveData<>("");
-    public final LiveData<String> expectedChord = _expectedChord;
+    public LiveData<String> expectedChord = _expectedChord;
 
     private final MutableLiveData<Integer> _currentLineIndex = new MutableLiveData<>(0);
     public LiveData<Integer> getCurrentLineIndex() { return _currentLineIndex; }
@@ -112,98 +100,102 @@ public class PracticeViewModel extends ViewModel implements ChordDetectionListen
     private final MutableLiveData<Set<Integer>> _correctIndices = new MutableLiveData<>(new HashSet<>());
     public LiveData<Set<Integer>> getCorrectIndices() { return _correctIndices; }
 
-    /** Porcentaje de progreso de la ventana sincronizada (0–100) */
     private final MutableLiveData<Integer> _progressPercent = new MutableLiveData<>(0);
     public LiveData<Integer> getProgressPercent() { return _progressPercent; }
 
-    /** Evento de score final tras práctica sincronizada */
     private final MutableLiveData<Event<Integer>> _scoreEvent = new MutableLiveData<>();
     public LiveData<Event<Integer>> scoreEvent = _scoreEvent;
 
-    private Runnable windowRunnable;
-    private Runnable progressRunnable;
+    public LiveData<Integer> bestScore = new MutableLiveData<>(0);
+    public LiveData<Integer> lastScore = new MutableLiveData<>(0);
 
-    public LiveData<Integer> bestScore  = new MutableLiveData<>(0);
-    public LiveData<Integer> lastScore  = new MutableLiveData<>(0);
-
-    private static final int USER_ID = 1; // o tu variable de user
     private final MutableLiveData<Event<String>> _unlockEvent = new MutableLiveData<>();
     public LiveData<Event<String>> unlockEvent = _unlockEvent;
 
+    private Runnable windowRunnable;
+    private Runnable progressRunnable;
+    private boolean windowDetected = false;
+    private int bpm;
+    private String measure;
+    private long sessionStartTime, sessionEndTime;
+
+    // Countdown timer
+    private final MutableLiveData<Integer> countdownSeconds = new MutableLiveData<>(0);
+    private final MutableLiveData<Boolean> isCountingDown   = new MutableLiveData<>(false);
+    private final MutableLiveData<Event<Boolean>> countdownFinished = new MutableLiveData<>();
+    private CountDownTimer countdownTimer;
+
     @Inject
-    public PracticeViewModel(@NonNull PracticeRepository repo,
-                             @NonNull IChordDetector chordDetector,
-                             @NonNull EvaluateUniqueChordsAchievementUseCase uniqueUc,
-                             @NonNull EvaluateSpeedUnlockAchievementUseCase speedUc,
-                             @NonNull EvaluatePerfectScoreAchievementUseCase perfectUc) {
+    public PracticeViewModel(
+            @NonNull PracticeRepository repo,
+            @NonNull IChordDetector chordDetector,
+            @NonNull EvaluateUniqueChordsAchievementUseCase uniqueUc,
+            @NonNull EvaluateSpeedUnlockAchievementUseCase speedUc,
+            @NonNull EvaluatePerfectScoreAchievementUseCase perfectUc
+    ) {
         this.repo = repo;
         this.chordDetector = chordDetector;
-        this.uniqueUc   = uniqueUc;
-        this.speedUc    = speedUc;
-        this.perfectUc  = perfectUc;
+        this.uniqueUc = uniqueUc;
+        this.speedUc = speedUc;
+        this.perfectUc = perfectUc;
 
+        // 1) Carga de datos
         chordProfiles    = repo.getAllChords();
-        chordProfiles.observeForever(profiles -> {
-            chordDetector.setChordProfiles(profiles);
-            Log.d(TAG, "Chord profiles set: " + (profiles != null ? profiles.size() : 0));
-        });
         songChords       = Transformations.switchMap(_songId, repo::getChordsForSong);
         songDetails      = Transformations.switchMap(_songId, repo::getSongWithDetails);
         sequenceWithInfo = Transformations.switchMap(_songId, repo::getChordsWithInfoForSong);
 
-        seqSource.addSource(chordProfiles, p -> seqSource.setValue(Pair.create(p, songChords.getValue())));
-        seqSource.addSource(songChords, sc -> seqSource.setValue(Pair.create(chordProfiles.getValue(), sc)));
-
-        seqSource.observeForever(pair -> {
+        // 2) Combinar perfiles y acordes
+        seqSource.addSource(chordProfiles, profiles -> {
+            chordDetector.setChordProfiles(profiles);
+            seqSource.setValue(Pair.create(profiles, songChords.getValue()));
+        });
+        seqSource.addSource(songChords, chords -> {
+            seqSource.setValue(Pair.create(chordProfiles.getValue(), chords));
+        });
+        seqSource.addSource(seqSource, pair -> {
             if (pair.first != null && pair.second != null) {
                 buildSequenceAndIndexMap(pair.first, pair.second);
             }
         });
 
-        bestScore = Transformations.switchMap(_songId, songId ->
-                Transformations.switchMap(_speedFactor, speed ->
-                        repo.getBestScore(songId, USER_ID, speed.floatValue())
-                )
-        );
-
-        lastScore = Transformations.switchMap(_songId, songId ->
-                Transformations.switchMap(_speedFactor, speed ->
-                        repo.getLastScore(songId, USER_ID, speed.floatValue())
-                )
-        );
-
+        // 3) Construir lineItems
         lineItems.addSource(seqSource, __ -> buildLineItems());
         lineItems.addSource(songDetails, __ -> {
             SongWithDetails d = songDetails.getValue();
             if (d != null) {
-                bpm = d.song.getBpm();
+                bpm     = d.song.getBpm();
                 measure = d.song.getMeasure();
-                Log.d(TAG, "Song loaded: BPM=" + bpm +
-                        " measure=" + measure);
             }
             buildLineItems();
         });
 
-        currentIndex.observeForever(this::onIndexChanged);
+        // 4) Puntajes
+        bestScore = Transformations.switchMap(_songId, id ->
+                Transformations.switchMap(_speedFactor, sp ->
+                        repo.getBestScore(id, USER_ID, sp.floatValue())
+                ));
+        lastScore = Transformations.switchMap(_songId, id ->
+                Transformations.switchMap(_speedFactor, sp ->
+                        repo.getLastScore(id, USER_ID, sp.floatValue())
+                ));
+
+        // 5) Reacción a índice actual
+        seqSource.addSource(_currentIndex, this::onIndexChanged);
     }
 
-    /** Configura la canción a practicar */
-    private LiveData<SongUserSpeed> unlockedSpeedsSource;
-
+    /** Llamar desde el Fragment tras obtener el songId */
     public void initForSong(int songId) {
         _songId.setValue(songId);
         repo.ensureSpeedRecordExists(songId, USER_ID);
 
         if (unlockedSpeedsSource != null) {
-            _unlockedSpeeds.removeSource(unlockedSpeedsSource); // ⬅️ LIMPIAR ANTERIOR
+            _unlockedSpeeds.removeSource(unlockedSpeedsSource);
         }
-
         unlockedSpeedsSource = repo.getSongUserSpeed(songId, USER_ID);
         _unlockedSpeeds.addSource(unlockedSpeedsSource, speed -> {
             _unlockedSpeeds.setValue(speed);
-
             if (speed != null) {
-                Log.d(TAG, "Velocidad desbloqueada desde BD: " + speed.getMaxUnlockedSpeed());
                 setSpeedFactor(speed.getMaxUnlockedSpeed());
             }
         });
@@ -509,13 +501,6 @@ public class PracticeViewModel extends ViewModel implements ChordDetectionListen
             return content;
         }
     }
-
-
-    // En el ViewModel:
-    private final MutableLiveData<Integer> countdownSeconds = new MutableLiveData<>(0);
-    private final MutableLiveData<Boolean> isCountingDown = new MutableLiveData<>(false);
-    private final MutableLiveData<Event<Boolean>> countdownFinished = new MutableLiveData<>();
-    private CountDownTimer countdownTimer;
 
     public LiveData<Integer> getCountdownSeconds() { return countdownSeconds; }
     public LiveData<Boolean> getIsCountingDown() { return isCountingDown; }
