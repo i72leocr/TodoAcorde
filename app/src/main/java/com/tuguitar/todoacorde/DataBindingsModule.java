@@ -1,18 +1,14 @@
 package com.tuguitar.todoacorde;
 
+import com.tuguitar.todoacorde.achievements.data.AchievementRepository;
+import com.tuguitar.todoacorde.achievements.data.AchievementRepositoryImpl;
+
 import javax.inject.Singleton;
 import dagger.Binds;
 import dagger.Module;
 import dagger.hilt.InstallIn;
-import java.util.List;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import dagger.hilt.components.SingletonComponent;
-import dagger.Binds;
-import dagger.Module;
 import dagger.Provides;
-import dagger.hilt.InstallIn;
-import dagger.hilt.components.SingletonComponent;
 
 @Module
 @InstallIn(SingletonComponent.class)

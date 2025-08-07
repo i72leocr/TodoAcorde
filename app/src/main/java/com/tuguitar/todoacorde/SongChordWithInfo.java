@@ -4,6 +4,8 @@ package com.tuguitar.todoacorde;
 import androidx.room.Embedded;
 import androidx.room.Relation;
 
+import com.tuguitar.todoacorde.songs.data.SongChord;
+
 /**
  * Una fila de SongChord, junto con la entidad Chord a la que apunta.
  */

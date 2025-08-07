@@ -5,9 +5,15 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionDao;
+import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionEntity;
+import com.tuguitar.todoacorde.songs.data.Song;
+import com.tuguitar.todoacorde.songs.data.SongChord;
+import com.tuguitar.todoacorde.songs.data.SongLyric;
+import com.tuguitar.todoacorde.songs.data.SongRepositoryModel;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

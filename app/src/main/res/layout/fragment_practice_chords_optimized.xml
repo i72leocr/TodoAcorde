@@ -86,7 +86,7 @@ android:layout_marginBottom="4dp">
             android:text="Am"
             android:textSize="18sp" />
 
-        <com.tuguitar.todoacorde.GridWithPointsView
+        <com.tuguitar.todoacorde.practice.ui.GridWithPointsView
             android:id="@+id/gridWithPointsView"
             android:layout_width="match_parent"
             android:layout_height="88dp"

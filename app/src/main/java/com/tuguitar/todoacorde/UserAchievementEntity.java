@@ -5,6 +5,8 @@ import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.TypeConverters;
 
+import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionEntity;
+
 /**
  * Entidad que persiste el progreso de cada usuario en cada nivel de logro.
  * Relaciona usuario ⇄ definición de logro.

@@ -105,7 +105,7 @@
         android:layout_marginStart="8dp" />
 
     <!-- Custom Grid with Points View -->
-    <com.tuguitar.todoacorde.GridWithPointsView
+    <com.tuguitar.todoacorde.practice.ui.GridWithPointsView
         android:id="@+id/gridWithPointsView"
         android:layout_width="100dp"
         android:layout_height="100dp"
