@@ -4,13 +4,15 @@ import android.Manifest;
 import android.animation.ObjectAnimator;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.LinearInterpolator;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.SeekBar;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,64 +21,51 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.tuguitar.todoacorde.tuner.data.PitchDetector;
-import com.tuguitar.todoacorde.tuner.domain.PitchDetectorCallback;
 import com.tuguitar.todoacorde.R;
+import com.tuguitar.todoacorde.tuner.domain.TunerViewModel;
+import com.tuguitar.todoacorde.tuner.domain.TuningResult;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-public class TunerFragment extends Fragment implements PitchDetectorCallback {
+import dagger.hilt.android.AndroidEntryPoint;
 
+@AndroidEntryPoint
+public class TunerFragment extends Fragment {
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
-    private static final int BUFFER_SIZE = 16;
-    private static final double TUNING_THRESHOLD = 0.5;
 
     private View noteCircle;
     private TextView noteDisplay;
-    private SeekBar tuningBar;
     private ImageView tuningMinus, tuningPlus;
     private TextView tensionAction;
     private FloatingActionButton btnMic;
-
-    private ObjectAnimator micAnimatorX, micAnimatorY;
-
     private ImageButton string1, string2, string3, string4, string5, string6;
     private ImageButton string1_circle, string2_circle, string3_circle, string4_circle, string5_circle, string6_circle;
-
     private ImageButton selectedStringButton = null;
     private ImageButton selectedButton = null;
+    private ObjectAnimator micAnimatorX, micAnimatorY;
 
     private final Map<ImageButton, String> stringNoteMap = new HashMap<>();
-    private PitchDetector pitchDetector;
-    private final List<Double> pitchBuffer = new ArrayList<>();
-    private static final Map<String, double[]> NOTE_FREQUENCIES = new HashMap<>();
+    private TunerViewModel tunerViewModel;
 
-    static {
-        NOTE_FREQUENCIES.put("E2", new double[]{80.10, 82.41, 84.86});
-        NOTE_FREQUENCIES.put("A2", new double[]{106.88, 110.00, 113.28});
-        NOTE_FREQUENCIES.put("D3", new double[]{142.71, 146.83, 151.43});
-        NOTE_FREQUENCIES.put("G3", new double[]{191.67, 196.00, 202.83});
-        NOTE_FREQUENCIES.put("B3", new double[]{240.24, 246.94, 254.35});
-        NOTE_FREQUENCIES.put("E4", new double[]{319.35, 329.63, 339.43});
-    }
+    private ProgressBar tuningBar;
+
+
+
+    private boolean pendingStartDetection = false;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-
         View view = inflater.inflate(R.layout.fragment_tuner, container, false);
-
+        // Bind views
         noteCircle = view.findViewById(R.id.noteCircle);
         noteDisplay = view.findViewById(R.id.noteDisplay);
-        tuningBar = view.findViewById(R.id.tuningBar);
         tuningMinus = view.findViewById(R.id.tuningMinus);
         tuningPlus = view.findViewById(R.id.tuningPlus);
         tensionAction = view.findViewById(R.id.tensionAction);
@@ -103,40 +92,42 @@ public class TunerFragment extends Fragment implements PitchDetectorCallback {
         stringNoteMap.put(string5, "A2");
         stringNoteMap.put(string6, "E2");
 
+        tuningBar = view.findViewById(R.id.tuningBar);
+
+
         hideAllStringButtons();
-        selectButton(string6, string6_circle);
-
-        string1.setOnClickListener(v -> selectButton(string1, string1_circle));
-        string1_circle.setOnClickListener(v -> selectButton(string1, string1_circle));
-        string2.setOnClickListener(v -> selectButton(string2, string2_circle));
-        string2_circle.setOnClickListener(v -> selectButton(string2, string2_circle));
-        string3.setOnClickListener(v -> selectButton(string3, string3_circle));
-        string3_circle.setOnClickListener(v -> selectButton(string3, string3_circle));
-        string4.setOnClickListener(v -> selectButton(string4, string4_circle));
-        string4_circle.setOnClickListener(v -> selectButton(string4, string4_circle));
-        string5.setOnClickListener(v -> selectButton(string5, string5_circle));
-        string5_circle.setOnClickListener(v -> selectButton(string5, string5_circle));
-        string6.setOnClickListener(v -> selectButton(string6, string6_circle));
-        string6_circle.setOnClickListener(v -> selectButton(string6, string6_circle));
-
-        tuningBar.setMax(100);
-        tuningBar.setProgress(50);
-        tuningMinus.setVisibility(View.INVISIBLE);
+        selectButton(string6, string6_circle); // Default string
         tuningPlus.setVisibility(View.INVISIBLE);
-
+        tuningMinus.setVisibility(View.INVISIBLE);
+        tensionAction.setText("");
         btnMic.setEnabled(false);
 
-        // Inicializamos detector pero NO arrancamos
+        setUpStringSelectionListeners();
+
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(requireActivity(),
                     new String[]{Manifest.permission.RECORD_AUDIO},
                     REQUEST_RECORD_AUDIO_PERMISSION);
-        } else if (pitchDetector == null) {
-            pitchDetector = new PitchDetector(this, requireContext());
+        } else {
+            btnMic.setEnabled(true);
         }
 
         return view;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view,
+                              @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        tunerViewModel = new ViewModelProvider(this).get(TunerViewModel.class);
+        tunerViewModel.getTuningResult().observe(getViewLifecycleOwner(), this::updateTuningUI);
+
+        // Si hay una petición de detección pendiente, lanzarla ahora
+        if (pendingStartDetection) {
+            new Handler(Looper.getMainLooper()).post(this::startPitchDetection);
+            pendingStartDetection = false;
+        }
     }
 
     @Override
@@ -145,42 +136,62 @@ public class TunerFragment extends Fragment implements PitchDetectorCallback {
         stopPitchDetection();
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        // No arranca automáticamente
-    }
-
-    /**
-     * Inicia la detección de pitch. Llamar desde el fragment padre.
-     */
+    /** Método seguro para lanzar detección desde fuera del fragmento (post-onViewCreated). */
     public void startPitchDetection() {
-        if (pitchDetector != null) {
-            pitchDetector.startDetection();
+        if (!isAdded()) {
+            pendingStartDetection = true;
+            return;
+        }
+
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(requireActivity(),
+                    new String[]{Manifest.permission.RECORD_AUDIO},
+                    REQUEST_RECORD_AUDIO_PERMISSION);
+        } else {
+            tunerViewModel.startTuning(requireContext());
             btnMic.setImageResource(R.drawable.ic_mic);
             startMicAnimation();
             resetTuningUI();
         }
     }
 
-    /**
-     * Detiene la detección y resetea la UI. Llamar desde el fragment padre.
-     */
     public void stopPitchDetection() {
-        if (pitchDetector != null) {
-            pitchDetector.stopDetection();
-        }
+        tunerViewModel.stopTuning();
         stopMicAnimation();
         resetTuningUI();
     }
 
-    private void resetTuningUI() {
-        tuningBar.setProgress(50);
-        tuningBar.invalidate();
-        tuningMinus.setVisibility(View.INVISIBLE);
-        tuningPlus.setVisibility(View.INVISIBLE);
-        tensionAction.setText("");
+    private void updateTuningUI(TuningResult result) {
+        noteCircle.setAlpha(1f);
+
+        if (result.showPlus) {
+            tuningPlus.setVisibility(View.VISIBLE);
+            tuningPlus.setColorFilter(ContextCompat.getColor(requireContext(), R.color.red));
+        } else {
+            tuningPlus.setVisibility(View.INVISIBLE);
+        }
+
+        if (result.showMinus) {
+            tuningMinus.setVisibility(View.VISIBLE);
+            tuningMinus.setColorFilter(ContextCompat.getColor(requireContext(), R.color.red));
+        } else {
+            tuningMinus.setVisibility(View.INVISIBLE);
+        }
+
+        tensionAction.setText(result.actionText != null ? result.actionText : "");
+
+        // Actualizar posición del indicador en la barra
+        float offset = result.getOffset();
+        int center = 50; // centro de la barra
+        int progress = (int) (center + offset);
+
+        // Asegurar que esté entre 0 y 100
+        progress = Math.max(0, Math.min(100, progress));
+
+        tuningBar.setProgress(progress);
     }
+
 
     private void selectButton(ImageButton pegButton, ImageButton circleButton) {
         if (selectedStringButton != null && selectedStringButton != pegButton) {
@@ -200,6 +211,11 @@ public class TunerFragment extends Fragment implements PitchDetectorCallback {
 
         String note = stringNoteMap.get(pegButton);
         noteDisplay.setText(note);
+        if (tunerViewModel != null) {
+            tunerViewModel.setTargetNote(note);
+        }
+
+        resetTuningUI();
     }
 
     private void hideAllStringButtons() {
@@ -211,20 +227,32 @@ public class TunerFragment extends Fragment implements PitchDetectorCallback {
         }
     }
 
+    private void setUpStringSelectionListeners() {
+        string1.setOnClickListener(v -> selectButton(string1, string1_circle));
+        string1_circle.setOnClickListener(v -> selectButton(string1, string1_circle));
+        string2.setOnClickListener(v -> selectButton(string2, string2_circle));
+        string2_circle.setOnClickListener(v -> selectButton(string2, string2_circle));
+        string3.setOnClickListener(v -> selectButton(string3, string3_circle));
+        string3_circle.setOnClickListener(v -> selectButton(string3, string3_circle));
+        string4.setOnClickListener(v -> selectButton(string4, string4_circle));
+        string4_circle.setOnClickListener(v -> selectButton(string4, string4_circle));
+        string5.setOnClickListener(v -> selectButton(string5, string5_circle));
+        string5_circle.setOnClickListener(v -> selectButton(string5, string5_circle));
+        string6.setOnClickListener(v -> selectButton(string6, string6_circle));
+        string6_circle.setOnClickListener(v -> selectButton(string6, string6_circle));
+    }
+
     private void startMicAnimation() {
         micAnimatorX = ObjectAnimator.ofFloat(btnMic, "scaleX", 1f, 1.15f, 1f);
         micAnimatorX.setDuration(1000);
         micAnimatorX.setRepeatCount(ObjectAnimator.INFINITE);
-        micAnimatorX.setRepeatMode(ObjectAnimator.RESTART);
         micAnimatorX.setInterpolator(new LinearInterpolator());
+        micAnimatorX.start();
 
         micAnimatorY = ObjectAnimator.ofFloat(btnMic, "scaleY", 1f, 1.15f, 1f);
         micAnimatorY.setDuration(1000);
         micAnimatorY.setRepeatCount(ObjectAnimator.INFINITE);
-        micAnimatorY.setRepeatMode(ObjectAnimator.RESTART);
         micAnimatorY.setInterpolator(new LinearInterpolator());
-
-        micAnimatorX.start();
         micAnimatorY.start();
     }
 
@@ -235,57 +263,10 @@ public class TunerFragment extends Fragment implements PitchDetectorCallback {
         btnMic.setScaleY(1f);
     }
 
-    @Override
-    public void onPitchDetected(double frequency) {
-        if (frequency <= 0) return;
-        pitchBuffer.add(frequency);
-        if (pitchBuffer.size() > BUFFER_SIZE) pitchBuffer.remove(0);
-        if (pitchBuffer.size() == BUFFER_SIZE) {
-            double filtered = calculateFilteredFrequency(pitchBuffer);
-            requireActivity().runOnUiThread(() -> updateTuningUI(filtered));
-        }
-    }
-
-    private void updateTuningUI(double freq) {
-        if (selectedStringButton == null) return;
-
-        String expectedNote = stringNoteMap.get(selectedStringButton);
-        double[] r = NOTE_FREQUENCIES.get(expectedNote);
-        int red = ContextCompat.getColor(requireContext(), R.color.red);
-
-        if (r != null) {
-            double min = r[0], tgt = r[1], max = r[2];
-            int progress = freq <= tgt ? (int) (((freq - min) / (tgt - min)) * 50)
-                    : 50 + (int) (((freq - tgt) / (max - tgt)) * 50);
-            progress = Math.max(0, Math.min(100, progress));
-            tuningBar.setProgress(progress);
-            tuningMinus.setVisibility(View.INVISIBLE);
-            tuningPlus.setVisibility(View.INVISIBLE);
-            tensionAction.setText("");
-
-            if (Math.abs(freq - tgt) <= TUNING_THRESHOLD) {
-                noteDisplay.setText(expectedNote);
-            } else if (freq < tgt) {
-                tuningPlus.setVisibility(View.VISIBLE);
-                tuningPlus.setColorFilter(red);
-                tensionAction.setText("DESTENSAR");
-            } else {
-                tuningMinus.setVisibility(View.VISIBLE);
-                tuningMinus.setColorFilter(red);
-                tensionAction.setText("TENSAR");
-            }
-        } else {
-            resetTuningUI();
-            tensionAction.setText("AJUSTAR");
-        }
-    }
-
-    private double calculateFilteredFrequency(List<Double> buffer) {
-        List<Double> tmp = new ArrayList<>(buffer);
-        Collections.sort(tmp);
-        double median = tmp.get(tmp.size() / 2);
-        tmp.removeIf(f -> Math.abs(f - median) > 2.0);
-        return tmp.size() < 3 ? median : tmp.stream().mapToDouble(d -> d).average().orElse(median);
+    private void resetTuningUI() {
+        tuningPlus.setVisibility(View.INVISIBLE);
+        tuningMinus.setVisibility(View.INVISIBLE);
+        tensionAction.setText("");
     }
 
     @Override
@@ -293,16 +274,13 @@ public class TunerFragment extends Fragment implements PitchDetectorCallback {
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION
-                && grantResults.length > 0
-                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            if (pitchDetector == null) {
-                pitchDetector = new PitchDetector(this, requireContext());
+        if (requestCode == REQUEST_RECORD_AUDIO_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                btnMic.setEnabled(true);
+                startPitchDetection(); // ✅ ahora seguro
+            } else {
+                Toast.makeText(requireContext(), "Se necesita permiso de micrófono", Toast.LENGTH_SHORT).show();
             }
-            startPitchDetection();
-        } else {
-            Toast.makeText(requireContext(),
-                    "Permission required", Toast.LENGTH_SHORT).show();
         }
     }
 }

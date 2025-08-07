@@ -1,10 +1,10 @@
 // SongChordWithInfo.java
-package com.tuguitar.todoacorde;
+package com.tuguitar.todoacorde.songs.data;
 
 import androidx.room.Embedded;
 import androidx.room.Relation;
 
-import com.tuguitar.todoacorde.songs.data.SongChord;
+import com.tuguitar.todoacorde.Chord;
 
 /**
  * Una fila de SongChord, junto con la entidad Chord a la que apunta.

@@ -27,11 +27,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.snackbar.Snackbar;
-import com.tuguitar.todoacorde.ChordDetectionListener;
-import com.tuguitar.todoacorde.practice.domain.PracticeViewModel;
 import com.tuguitar.todoacorde.R;
-import com.tuguitar.todoacorde.SongChordWithInfo;
+import com.tuguitar.todoacorde.songs.data.SongChordWithInfo;
 import com.tuguitar.todoacorde.practice.data.SongUserSpeed;
+import com.tuguitar.todoacorde.practice.domain.PracticeViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +38,7 @@ import java.util.List;
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
-public class PracticeChordsOptimizedFragment extends Fragment implements ChordDetectionListener {
+public class PracticeChordsOptimizedFragment extends Fragment {
     private static final String TAG = "PracticeOptimizedFrag";
     private static final int REQUEST_MIC = 123;
     private static final String ARG_SONG_ID = "song_id";
@@ -58,9 +57,6 @@ public class PracticeChordsOptimizedFragment extends Fragment implements ChordDe
     private TextView tvBest;
     private TextView tvLast;
     private TextView tvCountdown;
-    private final Handler countdownHandler = new Handler(Looper.getMainLooper());
-    private Runnable countdownRunnable;
-    private int countdownRemaining;
 
     private final List<SongChordWithInfo> chordInfoCache = new ArrayList<>();
 
@@ -69,20 +65,17 @@ public class PracticeChordsOptimizedFragment extends Fragment implements ChordDe
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_practice_chords_optimized,
-                container, false);
+        return inflater.inflate(R.layout.fragment_practice_chords_optimized, container, false);
     }
 
     @Override
     public void onViewCreated(@NonNull View view,
                               @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        // 1) Obtain the ViewModel via Hilt
+        viewModel = new ViewModelProvider(this).get(PracticeViewModel.class);
 
-        // 1) Inyecta el ViewModel con Hilt
-        viewModel = new ViewModelProvider(this)
-                .get(PracticeViewModel.class);
-
-        // 2) Vincula vistas y configura UI
+        // 2) Bind views and configure UI
         bindViews(view);
         setupSpeedSpinner();
         setupModeSwitch();
@@ -97,30 +90,27 @@ public class PracticeChordsOptimizedFragment extends Fragment implements ChordDe
         observeRunningState();
         setupStartStopButton();
 
-        // 3) Inicializa práctica con el songId
+        // 3) Initialize practice with the provided songId argument
         Bundle args = getArguments();
         if (args != null && args.containsKey(ARG_SONG_ID)) {
             viewModel.initForSong(args.getInt(ARG_SONG_ID));
         } else {
-            Log.e(TAG, "No se recibió song_id en los argumentos");
+            Log.e(TAG, "No song_id provided in fragment arguments");
         }
 
-        // 4) Observadores adicionales
+        // 4) Additional observers
         viewModel.songDetails.observe(getViewLifecycleOwner(), details -> {
             if (details != null && details.song != null) {
                 tvSongTitle.setText(details.song.getTitle());
                 tvSongAuthor.setText(details.song.getAuthor());
             }
         });
-
         viewModel.bestScore.observe(getViewLifecycleOwner(), best -> {
             tvBest.setText("Mejor Puntaje: " + (best != null ? best : "--"));
         });
-
         viewModel.lastScore.observe(getViewLifecycleOwner(), last -> {
             tvLast.setText("Último Puntaje: " + (last != null ? last : "--"));
         });
-
         viewModel.unlockEvent.observe(getViewLifecycleOwner(), ev -> {
             String unlocked = ev.getIfNotHandled();
             if (unlocked != null) {
@@ -129,7 +119,6 @@ public class PracticeChordsOptimizedFragment extends Fragment implements ChordDe
                         Snackbar.LENGTH_LONG).show();
             }
         });
-
         viewModel.getCountdownSeconds().observe(getViewLifecycleOwner(), seconds -> {
             if (seconds != null && seconds > 0) {
                 tvCountdown.setText(String.valueOf(seconds));
@@ -138,74 +127,29 @@ public class PracticeChordsOptimizedFragment extends Fragment implements ChordDe
                 tvCountdown.setVisibility(View.GONE);
             }
         });
-
         viewModel.getIsCountingDown().observe(getViewLifecycleOwner(), counting -> {
             btnStartStop.setEnabled(!Boolean.TRUE.equals(counting));
         });
-
         viewModel.getCountdownFinished().observe(getViewLifecycleOwner(), event -> {
             if (event != null && Boolean.TRUE.equals(event.getIfNotHandled())) {
-                toggleDetection(); // arranca después de la cuenta atrás
+                toggleDetection(); // start after countdown finishes
             }
         });
-
         viewModel.unlockedSpeeds.observe(getViewLifecycleOwner(), speeds -> {
             if (speeds == null) return;
-
-            int bestUnlocked = speeds.isUnlocked1x ? 2 :
+            int bestUnlockedPos = speeds.isUnlocked1x ? 2 :
                     speeds.isUnlocked0_75x ? 1 : 0;
-
-            if (spinnerSpeed.getSelectedItemPosition() != bestUnlocked) {
+            if (spinnerSpeed.getSelectedItemPosition() != bestUnlockedPos) {
+                // Update spinner selection without triggering listener
                 spinnerSpeed.setOnItemSelectedListener(null);
-                spinnerSpeed.setSelection(bestUnlocked, false);
-                spinnerSpeed.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                    @Override public void onItemSelected(AdapterView<?> parent, View v, int pos, long id) {
-                        double f = (pos == 0 ? 0.5 : pos == 1 ? 0.75 : 1.0);
-                        SongUserSpeed sus = viewModel.unlockedSpeeds.getValue();
-                        boolean isUnlocked =
-                                (f == 0.5) ||
-                                        (f == 0.75 && sus != null && sus.isUnlocked0_75x) ||
-                                        (f == 1.0 && sus != null && sus.isUnlocked1x);
-
-                        if (isUnlocked) {
-                            viewModel.setSpeedFactor(f);
-                        } else {
-                            Toast.makeText(requireContext(),
-                                    "Debes obtener al menos 80 puntos en la velocidad anterior para desbloquear esta.",
-                                    Toast.LENGTH_SHORT).show();
-                            spinnerSpeed.setSelection(bestUnlocked);
-                        }
-                    }
-                    @Override public void onNothingSelected(AdapterView<?> parent) {}
-                });
+                spinnerSpeed.setSelection(bestUnlockedPos, false);
+                spinnerSpeed.setOnItemSelectedListener(speedSpinnerListener());
             }
-
-            viewModel.setSpeedFactor(bestUnlocked == 0 ? 0.5 : bestUnlocked == 1 ? 0.75 : 1.0);
+            // Ensure speed factor reflects the best unlocked speed
+            viewModel.setSpeedFactor(bestUnlockedPos == 0 ? 0.5 : bestUnlockedPos == 1 ? 0.75 : 1.0);
         });
-
-        spinnerSpeed.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override public void onItemSelected(AdapterView<?> parent, View v, int pos, long id) {
-                double factor = (pos == 0 ? 0.5 : pos == 1 ? 0.75 : 1.0);
-                SongUserSpeed sus = viewModel.unlockedSpeeds.getValue();
-                boolean isUnlocked =
-                        (factor == 0.5) ||
-                                (factor == 0.75 && sus != null && sus.isUnlocked0_75x) ||
-                                (factor == 1.0 && sus != null && sus.isUnlocked1x);
-
-                if (isUnlocked) {
-                    viewModel.setSpeedFactor(factor);
-                } else {
-                    Toast.makeText(requireContext(),
-                            "Debes obtener al menos 80 puntos en la velocidad anterior para desbloquear esta.",
-                            Toast.LENGTH_SHORT).show();
-                    int restorePos = sus != null
-                            ? (sus.getMaxUnlockedSpeed() == 1.0f ? 2 : sus.getMaxUnlockedSpeed() == 0.75f ? 1 : 0)
-                            : 0;
-                    spinnerSpeed.setSelection(restorePos);
-                }
-            }
-            @Override public void onNothingSelected(AdapterView<?> parent) {}
-        });
+        // Set initial spinner listener
+        spinnerSpeed.setOnItemSelectedListener(speedSpinnerListener());
     }
 
     private void bindViews(View root) {
@@ -231,9 +175,9 @@ public class PracticeChordsOptimizedFragment extends Fragment implements ChordDe
     }
 
     private void setupSpeedSpinner() {
-        ArrayAdapter<CharSequence> spAdapter = ArrayAdapter
-                .createFromResource(requireContext(), R.array.speed_options,
-                        android.R.layout.simple_spinner_item);
+        ArrayAdapter<CharSequence> spAdapter = ArrayAdapter.createFromResource(
+                requireContext(), R.array.speed_options, android.R.layout.simple_spinner_item
+        );
         spAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerSpeed.setAdapter(spAdapter);
     }
@@ -248,10 +192,10 @@ public class PracticeChordsOptimizedFragment extends Fragment implements ChordDe
             tvLast.setVisibility(sync ? View.VISIBLE : View.GONE);
             progressBar.setProgress(0);
         });
-        switchMode.setOnCheckedChangeListener((btn, checked) ->
-                viewModel.setMode(checked
-                        ? PracticeViewModel.Mode.SYNCHRONIZED
-                        : PracticeViewModel.Mode.FREE));
+        switchMode.setOnCheckedChangeListener((btn, checked) -> {
+            viewModel.setMode(checked ? PracticeViewModel.Mode.SYNCHRONIZED
+                    : PracticeViewModel.Mode.FREE);
+        });
     }
 
     private void setupAdapterClicks() {
@@ -259,82 +203,86 @@ public class PracticeChordsOptimizedFragment extends Fragment implements ChordDe
     }
 
     private void observeLineItems() {
-        viewModel.getLineItems()
-                .observe(getViewLifecycleOwner(), adapter::submitList);
+        viewModel.getLineItems().observe(getViewLifecycleOwner(), adapter::submitList);
     }
 
     private void observeChordInfo() {
-        viewModel.getSequenceWithInfo()
-                .observe(getViewLifecycleOwner(), list -> {
-                    chordInfoCache.clear();
-                    if (list != null) chordInfoCache.addAll(list);
-                });
+        viewModel.getSequenceWithInfo().observe(getViewLifecycleOwner(), list -> {
+            chordInfoCache.clear();
+            if (list != null) chordInfoCache.addAll(list);
+        });
     }
 
     private void observeCurrentIndex() {
         viewModel.currentIndex.observe(getViewLifecycleOwner(), idx -> {
             adapter.setActiveChordGlobalIndex(idx);
-            if (idx >= 0 && idx < chordInfoCache.size()) {
+            if (idx != null && idx >= 0 && idx < chordInfoCache.size()) {
                 tvCurrentChordName.setText(chordInfoCache.get(idx).chord.getName());
                 drawChordDiagram(idx);
+            } else {
+                tvCurrentChordName.setText("");
             }
         });
     }
 
     private void observeCurrentLineIndex() {
-        viewModel.getCurrentLineIndex()
-                .observe(getViewLifecycleOwner(), line -> {
-                    if (line != null && line >= 0) recycler.smoothScrollToPosition(line);
-                });
+        viewModel.getCurrentLineIndex().observe(getViewLifecycleOwner(), line -> {
+            if (line != null && line >= 0) {
+                recycler.smoothScrollToPosition(line);
+            }
+        });
     }
 
     private void observeCorrectIndices() {
-        viewModel.getCorrectIndices()
-                .observe(getViewLifecycleOwner(), adapter::setCorrectIndices);
+        viewModel.getCorrectIndices().observe(getViewLifecycleOwner(), adapter::setCorrectIndices);
     }
 
     private void observeProgress() {
-        viewModel.getProgressPercent()
-                .observe(getViewLifecycleOwner(), progressBar::setProgress);
+        viewModel.getProgressPercent().observe(getViewLifecycleOwner(), progressBar::setProgress);
     }
 
     private void observeScoreEvent() {
         viewModel.scoreEvent.observe(getViewLifecycleOwner(), ev -> {
             Integer score = ev.getIfNotHandled();
-            if (score != null) showScoreDialog(score);
+            if (score != null) {
+                showScoreResult(score);
+            }
         });
     }
 
-    private void showScoreDialog(int score) {
+    private void showScoreResult(int score) {
         String msg = score < 50
                 ? "Has obtenido " + score + " puntos. Vuelve a intentarlo."
                 : "¡Enhorabuena! Has obtenido " + score + " puntos.";
-
         Snackbar.make(requireView(), msg, Snackbar.LENGTH_LONG).show();
         btnStartStop.setText("Empezar");
     }
 
     private void observeRunningState() {
         viewModel.isRunning.observe(getViewLifecycleOwner(), running -> {
-            switchMode.setEnabled(!running);
-            spinnerSpeed.setEnabled(!running);
+            switchMode.setEnabled(!Boolean.TRUE.equals(running));
+            spinnerSpeed.setEnabled(!Boolean.TRUE.equals(running));
+            if (running != null && running) {
+                btnStartStop.setText("Terminar");
+            } else {
+                btnStartStop.setText("Empezar");
+            }
         });
     }
 
     private void setupStartStopButton() {
         btnStartStop.setOnClickListener(v -> {
-            if (ActivityCompat.checkSelfPermission(
-                    requireContext(), Manifest.permission.RECORD_AUDIO)
+            // Request microphone permission if not granted
+            if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO)
                     != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(
-                        new String[]{Manifest.permission.RECORD_AUDIO},
-                        REQUEST_MIC
-                );
+                requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_MIC);
             } else {
                 Boolean running = viewModel.isRunning.getValue();
                 if (running == null || !running) {
+                    // Start with a countdown if not already running
                     viewModel.startCountdown();
                 } else {
+                    // If currently running, stop the practice
                     toggleDetection();
                 }
             }
@@ -345,20 +293,44 @@ public class PracticeChordsOptimizedFragment extends Fragment implements ChordDe
         Boolean running = viewModel.isRunning.getValue();
         if (running == null || !running) {
             viewModel.startDetection();
-            btnStartStop.setText("Terminar");
         } else {
             viewModel.stopDetection();
-            btnStartStop.setText("Empezar");
         }
     }
 
     private void drawChordDiagram(int idx) {
         if (idx < 0 || idx >= chordInfoCache.size()) return;
         SongChordWithInfo info = chordInfoCache.get(idx);
-        gridView.setPointsFromHint(
-                info.chord.getHint(),
-                info.chord.getFingerHint()
-        );
+        gridView.setPointsFromHint(info.chord.getHint(), info.chord.getFingerHint());
+    }
+
+    @NonNull
+    private AdapterView.OnItemSelectedListener speedSpinnerListener() {
+        return new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                double factor = (pos == 0 ? 0.5 : pos == 1 ? 0.75 : 1.0);
+                SongUserSpeed sus = viewModel.unlockedSpeeds.getValue();
+                boolean isUnlocked =
+                        (factor == 0.5) ||
+                                (factor == 0.75 && sus != null && sus.isUnlocked0_75x) ||
+                                (factor == 1.0 && sus != null && sus.isUnlocked1x);
+                if (isUnlocked) {
+                    viewModel.setSpeedFactor(factor);
+                } else {
+                    Toast.makeText(requireContext(),
+                            "Debes obtener al menos 80 puntos en la velocidad anterior para desbloquear esta.",
+                            Toast.LENGTH_SHORT).show();
+                    // Revert to highest unlocked speed
+                    int restorePos = sus != null
+                            ? (sus.getMaxUnlockedSpeed() == 1.0f ? 2
+                            : sus.getMaxUnlockedSpeed() == 0.75f ? 1 : 0)
+                            : 0;
+                    spinnerSpeed.setSelection(restorePos);
+                }
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        };
     }
 
     @Override
@@ -366,15 +338,9 @@ public class PracticeChordsOptimizedFragment extends Fragment implements ChordDe
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_MIC
-                && grantResults.length > 0
+        if (requestCode == REQUEST_MIC && grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             toggleDetection();
         }
-    }
-
-    @Override
-    public void onChordDetected(String chordName) {
-        // El ViewModel se encarga de gestionar este evento
     }
 }
