@@ -8,6 +8,22 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
 import androidx.sqlite.db.SupportSQLiteDatabase;
+
+import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionDao;
+import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionEntity;
+import com.tuguitar.todoacorde.practice.data.PracticeDetail;
+import com.tuguitar.todoacorde.practice.data.PracticeDetailDao;
+import com.tuguitar.todoacorde.practice.data.PracticeSession;
+import com.tuguitar.todoacorde.practice.data.PracticeSessionDao;
+import com.tuguitar.todoacorde.practice.data.SongUserSpeed;
+import com.tuguitar.todoacorde.practice.data.SongUserSpeedDao;
+import com.tuguitar.todoacorde.songs.data.Song;
+import com.tuguitar.todoacorde.songs.data.SongChord;
+import com.tuguitar.todoacorde.songs.data.SongChordDao;
+import com.tuguitar.todoacorde.songs.data.SongDao;
+import com.tuguitar.todoacorde.songs.data.SongLyric;
+import com.tuguitar.todoacorde.songs.data.SongLyricDao;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 

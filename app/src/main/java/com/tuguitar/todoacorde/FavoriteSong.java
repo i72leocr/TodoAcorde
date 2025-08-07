@@ -13,6 +13,8 @@ import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.Index;
 
+import com.tuguitar.todoacorde.songs.data.Song;
+
 @Entity(
         tableName = "favorite_songs",
         primaryKeys = {"userId", "songId"},

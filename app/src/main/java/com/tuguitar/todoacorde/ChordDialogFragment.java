@@ -10,6 +10,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Gravity;
 
+import com.tuguitar.todoacorde.practice.ui.GridWithPointsView;
+
 public class ChordDialogFragment extends DialogFragment {
 
     private static final String ARG_HINT = "hint";

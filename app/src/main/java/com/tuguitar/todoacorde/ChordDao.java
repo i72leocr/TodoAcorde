@@ -6,6 +6,8 @@ import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 
+import com.tuguitar.todoacorde.songs.data.SongChord;
+
 import java.util.List;
 
 @Dao

@@ -7,6 +7,10 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.tuguitar.todoacorde.achievements.ui.AchievementFragment;
+import com.tuguitar.todoacorde.audio.ui.AudioToolsFragment;
+import com.tuguitar.todoacorde.scales.ui.ScaleTrainerFragment;
+import com.tuguitar.todoacorde.songs.ui.SongFragment;
 
 import android.util.Log;
 import android.view.MenuItem;

@@ -1,5 +1,7 @@
 package com.tuguitar.todoacorde;
 
+import com.tuguitar.todoacorde.scales.data.ScaleFretNote;
+
 import java.util.*;
 
 public class PatternRepository {

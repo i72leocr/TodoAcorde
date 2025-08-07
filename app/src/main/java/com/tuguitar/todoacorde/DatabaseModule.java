@@ -1,8 +1,15 @@
 package com.tuguitar.todoacorde;
 
 import android.app.Application;
-
 import androidx.room.Room;
+
+import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionDao;
+import com.tuguitar.todoacorde.practice.data.PracticeDetailDao;
+import com.tuguitar.todoacorde.practice.data.PracticeSessionDao;
+import com.tuguitar.todoacorde.practice.data.SongUserSpeedDao;
+import com.tuguitar.todoacorde.songs.data.SongChordDao;
+import com.tuguitar.todoacorde.songs.data.SongDao;
+import com.tuguitar.todoacorde.songs.data.SongLyricDao;
 
 import javax.inject.Singleton;
 
@@ -11,85 +18,117 @@ import dagger.Provides;
 import dagger.hilt.InstallIn;
 import dagger.hilt.components.SingletonComponent;
 
-
 @Module
 @InstallIn(SingletonComponent.class)
 public class DatabaseModule {
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     static todoAcordeDatabase provideDatabase(Application app) {
         return Room.databaseBuilder(app, todoAcordeDatabase.class, "todoacorde_database")
                 .fallbackToDestructiveMigration()
                 .build();
     }
 
-    @Provides static SongDao provideSongDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static SongDao provideSongDao(todoAcordeDatabase db) {
         return db.songDao();
     }
 
-    @Provides static ChordDao provideChordDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static ChordDao provideChordDao(todoAcordeDatabase db) {
         return db.chordDao();
     }
 
-    @Provides static SongChordDao provideSongChordDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static SongChordDao provideSongChordDao(todoAcordeDatabase db) {
         return db.songChordDao();
     }
 
-    @Provides static SongLyricDao provideSongLyricDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static SongLyricDao provideSongLyricDao(todoAcordeDatabase db) {
         return db.songLyricDao();
     }
 
-    @Provides static ProgressionDao provideProgressionDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static ProgressionDao provideProgressionDao(todoAcordeDatabase db) {
         return db.progressionDao();
     }
 
-    @Provides static ProgressionChordDao provideProgressionChordDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static ProgressionChordDao provideProgressionChordDao(todoAcordeDatabase db) {
         return db.progressionChordDao();
     }
 
-    @Provides static ProgressionDetailDao provideProgressionDetailDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static ProgressionDetailDao provideProgressionDetailDao(todoAcordeDatabase db) {
         return db.progressionDetailDao();
     }
 
-    @Provides static ProgressionSessionDao provideProgressionSessionDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static ProgressionSessionDao provideProgressionSessionDao(todoAcordeDatabase db) {
         return db.progressionSessionDao();
     }
 
-    @Provides static PracticeSessionDao providePracticeSessionDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static PracticeSessionDao providePracticeSessionDao(todoAcordeDatabase db) {
         return db.practiceSessionDao();
     }
 
-    @Provides static PracticeDetailDao providePracticeDetailDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static PracticeDetailDao providePracticeDetailDao(todoAcordeDatabase db) {
         return db.practiceDetailDao();
     }
 
-    @Provides static SongUserSpeedDao provideSongUserSpeedDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static SongUserSpeedDao provideSongUserSpeedDao(todoAcordeDatabase db) {
         return db.songUserSpeedDao();
     }
 
-    @Provides static FavoriteSongDao provideFavoriteSongDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static FavoriteSongDao provideFavoriteSongDao(todoAcordeDatabase db) {
         return db.favoriteSongDao();
     }
 
-    @Provides static UserDao provideUserDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static UserDao provideUserDao(todoAcordeDatabase db) {
         return db.userDao();
     }
 
-    @Provides static DifficultyDao provideDifficultyDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static DifficultyDao provideDifficultyDao(todoAcordeDatabase db) {
         return db.difficultyDao();
     }
 
-    @Provides static ChordTypeDao provideChordTypeDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static ChordTypeDao provideChordTypeDao(todoAcordeDatabase db) {
         return db.chordTypeDao();
     }
 
-    // DAO de definiciones de logro (no cambia)
-    @Provides static AchievementDefinitionDao provideAchievementDefinitionDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static AchievementDefinitionDao provideAchievementDefinitionDao(todoAcordeDatabase db) {
         return db.achievementDefinitionDao();
     }
 
-    // Nuevo DAO de logros: insert/update con @Upsert
-    @Provides static AchievementDao provideAchievementDao(todoAcordeDatabase db) {
+    @Provides
+    @Singleton
+    static AchievementDao provideAchievementDao(todoAcordeDatabase db) {
         return db.achievementDao();
     }
 }

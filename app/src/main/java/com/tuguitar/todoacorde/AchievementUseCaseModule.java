@@ -1,5 +1,13 @@
 package com.tuguitar.todoacorde;
 
+import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionDao;
+import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluatePerfectScoreAchievementUseCase;
+import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluateSpeedUnlockAchievementUseCase;
+import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluateUniqueChordsAchievementUseCase;
+import com.tuguitar.todoacorde.practice.data.PracticeDetailDao;
+import com.tuguitar.todoacorde.practice.data.PracticeSessionDao;
+import com.tuguitar.todoacorde.practice.data.SongUserSpeedDao;
+
 import javax.inject.Singleton;
 
 import dagger.Module;

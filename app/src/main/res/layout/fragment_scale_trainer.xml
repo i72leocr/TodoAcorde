@@ -60,7 +60,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@id/scrollScaleNotes">
 
-        <com.tuguitar.todoacorde.ScaleFretboardView
+        <com.tuguitar.todoacorde.scales.ui.ScaleFretboardView
             android:id="@+id/scaleFretboard"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

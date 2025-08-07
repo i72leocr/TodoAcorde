@@ -2,6 +2,11 @@ package com.tuguitar.todoacorde;
 
 import androidx.room.Embedded;
 import androidx.room.Relation;
+
+import com.tuguitar.todoacorde.songs.data.Song;
+import com.tuguitar.todoacorde.songs.data.SongChord;
+import com.tuguitar.todoacorde.songs.data.SongLyric;
+
 import java.util.List;
 
 public class SongWithDetails {
