@@ -32,7 +32,9 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
     private final MetronomeManager metronomeManager;
     private boolean metronomeEnabled = false;
     private static final int USER_ID = 1;
-
+    // al lado de tus otros LiveData
+    private final MediatorLiveData<Float> _scrollPercent = new MediatorLiveData<>();
+    public LiveData<Float> scrollPercent = _scrollPercent;
     public enum Mode { FREE, SYNCHRONIZED }
 
     // LiveData for practice mode and speed factor
@@ -57,7 +59,7 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
     private final MutableLiveData<Boolean> _isRunning = new MutableLiveData<>(false);
     public LiveData<Boolean> isRunning = _isRunning;
 
-    private final MutableLiveData<Integer> _currentIndex = new MutableLiveData<>(0);
+    private final MutableLiveData<Integer> _currentIndex = new MutableLiveData<>(-1);
     public LiveData<Integer> currentIndex = _currentIndex;
 
     private final MutableLiveData<String> _expectedChord = new MutableLiveData<>("");
@@ -118,13 +120,22 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
             );
         });
 
-        isActive.addSource(isRunning, r -> isActive.setValue(Boolean.TRUE.equals(r)));
-        isActive.addSource(isCountingDown, d -> {
-            boolean cur = isActive.getValue() != null && isActive.getValue();
-            isActive.setValue(cur || Boolean.TRUE.equals(d));
+        isActive.addSource(isRunning, value -> {
+            Boolean countdown = isCountingDown.getValue();
+            isActive.setValue(Boolean.TRUE.equals(value) || Boolean.TRUE.equals(countdown));
+        });
+        isActive.addSource(isCountingDown, value -> {
+            Boolean running = isRunning.getValue();
+            isActive.setValue(Boolean.TRUE.equals(value) || Boolean.TRUE.equals(running));
         });
         // (We will set _songId in initForSong; using a separate internal MutableLiveData for songId)
         sequenceWithInfo = Transformations.switchMap(_songId, id -> repo.getChordsWithInfoForSong(id));
+        // ① Observamos cambios en currentLineIndex
+        _scrollPercent.addSource(_currentLineIndex, line -> recalcScrollPercent(line, sequenceManager.getLineItems().getValue()));
+
+        // ② Observamos también cuando cambie la lista de líneas
+        _scrollPercent.addSource(sequenceManager.getLineItems(), list -> recalcScrollPercent(_currentLineIndex.getValue(), list));
+
 
         // Best and last score for current song and speed
         bestScore = Transformations.switchMap(_songId, songId ->
@@ -141,6 +152,16 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
 
     // Internal MutableLiveData for selected song ID
     private final MutableLiveData<Integer> _songId = new MutableLiveData<>();
+
+
+    private void recalcScrollPercent(Integer lineIndex, List<LineItem> lines) {
+        if (lines == null || lines.size() <= 1 || lineIndex == null || lineIndex < 0) {
+            _scrollPercent.setValue(0f);
+        } else {
+            float pct = lineIndex / (float)(lines.size() - 1);
+            _scrollPercent.setValue(pct);
+        }
+    }
 
 
     public void setCurrentIndex(int index) {
@@ -181,35 +202,58 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
 
     /** Start the practice session (after any countdown). */
     public void startDetection() {
+        // Si ya está corriendo, no hacer nada
         if (Boolean.TRUE.equals(_isRunning.getValue())) return;
-        // Mark as running and reset UI state
+
+        // Marcar como en ejecución y resetear estado de UI
         _isRunning.setValue(true);
         resetState();
-        // Start the practice session via the manager
+
+        // Leer modo y lista de acordes
         Mode modeValue = _mode.getValue() != null ? _mode.getValue() : Mode.SYNCHRONIZED;
         List<SongChordWithInfo> chordInfoList = sequenceWithInfo.getValue();
-        double speed = _speedFactor.getValue() != null ? _speedFactor.getValue() : 1.0;
-        practiceSessionManager.startSession(_songId.getValue(), modeValue, chordInfoList, speed);
 
-        // Nuevo: si el metrónomo está habilitado, iniciarlo con BPM y compás de la canción
+        // Leer factor de velocidad (0.5, 0.75, 1.0, etc)
+        double speed = _speedFactor.getValue() != null ? _speedFactor.getValue() : 1.0;
+
+        // Iniciar la sesión de práctica
+        practiceSessionManager.startSession(
+                _songId.getValue(),
+                modeValue,
+                chordInfoList,
+                speed
+        );
+
+        // Si el metrónomo está activo, iniciarlo a tempo ajustado
         if (metronomeEnabled) {
             SongWithDetails details = songDetails.getValue();
             if (details != null && details.song != null) {
                 Song song = details.song;
-                int bpm = song.getBpm();
+
+                // BPM base de la canción
+                int baseBpm = song.getBpm();
+
+                // BPM ajustado según speedFactor
+                int adjustedBpm = (int) Math.round(baseBpm * speed);
+
+                // Calcular beats por compás (ej. "4/4" → 4)
                 String measureStr = song.getMeasure();
                 int beatsPerMeasure = 4;
                 try {
                     if (measureStr != null && measureStr.contains("/")) {
-                        // tomar la parte numérica antes de la barra (ej: "4/4" -> 4)
                         beatsPerMeasure = Integer.parseInt(measureStr.split("/")[0]);
                     }
-                } catch (NumberFormatException e) {
-                    // si falla, usar 4 por defecto
-                    beatsPerMeasure = 4;
+                } catch (NumberFormatException ignored) {
+                    // usar 4 si hay error
                 }
-                // Iniciar metronomo con acento en primer tiempo
-                metronomeManager.start(bpm, beatsPerMeasure, true, null);
+
+                // Arrancar metrónomo, acento en primer tiempo
+                metronomeManager.start(
+                        adjustedBpm,
+                        beatsPerMeasure,
+                        true,
+                        null
+                );
             }
         }
     }
@@ -220,21 +264,17 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
         Log.d(TAG, "Deteniendo práctica");
         _isRunning.setValue(false);
         practiceSessionManager.stopSession();
-        metronomeManager.stop();              // Nuevo: detener metrónomo
+        metronomeManager.stop();
+        resetState();
         _progressPercent.setValue(0);
     }
 
     /** Resets the UI-related state in preparation for a new practice run. */
     private void resetState() {
         // Reset current index and related UI indicators
-        _currentIndex.setValue(0);
+        _currentIndex.setValue(-1);
         // Set expected chord to the first chord's name if available
-        if (sequenceWithInfo.getValue() != null && !sequenceWithInfo.getValue().isEmpty()) {
-            String firstChordName = sequenceWithInfo.getValue().get(0).chord.getName();
-            _expectedChord.setValue(firstChordName != null ? firstChordName : "");
-        } else {
-            _expectedChord.setValue("");
-        }
+        _expectedChord.setValue(""); // No mostrar acorde esperado inicialmente
         _currentLineIndex.setValue(0);
         _correctIndices.setValue(new HashSet<>());
         _progressPercent.setValue(0);
@@ -311,7 +351,8 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
 
         _isRunning.setValue(false);                 // Actualiza estado
         _progressPercent.setValue(0);
-        _currentIndex.setValue(0);
+        _currentIndex.setValue(-1); // No hay acorde seleccionado inicialmente
+        _expectedChord.setValue(""); // Quita cualquier nombre de acorde mostrado
         _correctIndices.setValue(new HashSet<>());
         _expectedChord.setValue("");
         _currentLineIndex.setValue(0);

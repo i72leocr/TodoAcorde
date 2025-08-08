@@ -35,12 +35,14 @@
         <!-- Actividad principal -->
         <activity
             android:name=".MainContainerActivity"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
 
         <!-- Ejemplo de Activity heredando AppCompat si la necesitas -->
         <!--

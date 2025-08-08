@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,6 +30,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.tuguitar.todoacorde.MainContainerActivity;
 import com.tuguitar.todoacorde.R;
@@ -36,7 +38,11 @@ import com.tuguitar.todoacorde.songs.data.SongChordWithInfo;
 import com.tuguitar.todoacorde.practice.data.SongUserSpeed;
 import com.tuguitar.todoacorde.practice.domain.PracticeViewModel;
 
+import android.animation.ObjectAnimator;
+import android.view.animation.LinearInterpolator;
+
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import androidx.activity.OnBackPressedCallback;
@@ -69,6 +75,8 @@ public class PracticeChordsOptimizedFragment extends Fragment {
     private TextView tvCountdown;
     private CheckBox cbMetronome;
 
+    private FloatingActionButton fabMic;
+    private ObjectAnimator micAnimatorX, micAnimatorY;
 
     private final List<SongChordWithInfo> chordInfoCache = new ArrayList<>();
 
@@ -107,7 +115,7 @@ public class PracticeChordsOptimizedFragment extends Fragment {
         observeLineItems();
         observeChordInfo();
         observeCurrentIndex();
-        observeCurrentLineIndex();
+        observeScrollPercent();
         observeCorrectIndices();
         observeProgress();
         observeScoreEvent();
@@ -151,12 +159,14 @@ public class PracticeChordsOptimizedFragment extends Fragment {
                 tvCountdown.setVisibility(View.GONE);
             }
         });
+        viewModel.getIsCountingDown().observe(getViewLifecycleOwner(), counting -> {
+            btnStartStop.setEnabled(!Boolean.TRUE.equals(counting));
 
-        viewModel.isActive().observe(getViewLifecycleOwner(), active -> {
-            if (requireActivity() instanceof MainContainerActivity) {
-                ((MainContainerActivity) requireActivity()).setPracticeRunning(Boolean.TRUE.equals(active));
+            if (Boolean.TRUE.equals(counting)) {
+                if (requireActivity() instanceof MainContainerActivity) {
+                    ((MainContainerActivity) requireActivity()).setPracticeRunning(false);
+                }
             }
-            btnStartStop.setEnabled(!Boolean.TRUE.equals(active));
         });
 
         viewModel.getCountdownFinished().observe(getViewLifecycleOwner(), event -> {
@@ -191,6 +201,14 @@ public class PracticeChordsOptimizedFragment extends Fragment {
         recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter            = new LyricChordAdapter();
         recycler.setAdapter(adapter);
+        // Habilita el fading edge vertical (suave degradado arriba/abajo)
+        recycler.setVerticalFadingEdgeEnabled(true);
+        int fadePx = (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                16,
+                getResources().getDisplayMetrics()
+        );
+        recycler.setFadingEdgeLength(fadePx);
         gridView           = root.findViewById(R.id.gridWithPointsView);
         tvCurrentChordName = root.findViewById(R.id.tvCurrentChordName);
         btnStartStop       = root.findViewById(R.id.btnStartStopPractice);
@@ -199,7 +217,7 @@ public class PracticeChordsOptimizedFragment extends Fragment {
         progressBar        = root.findViewById(R.id.progressBar);
         tvCountdown        = root.findViewById(R.id.tvCountdown);
         cbMetronome  = root.findViewById(R.id.cbMetronome);  // Nuevo: checkbox metrónomo
-
+        fabMic = root.findViewById(R.id.btnMic);
         progressBar.setIndeterminate(false);
         progressBar.setMax(100);
         progressBar.setProgress(0);
@@ -251,18 +269,27 @@ public class PracticeChordsOptimizedFragment extends Fragment {
                 tvCurrentChordName.setText(chordInfoCache.get(idx).chord.getName());
                 drawChordDiagram(idx);
             } else {
-                tvCurrentChordName.setText("");
+                tvCurrentChordName.setText("");        // Limpia el nombre
+                gridView.clearDiagram();               // ← AÑADE ESTA LÍNEA (debes implementarla en GridWithPointsView)
             }
         });
     }
 
-    private void observeCurrentLineIndex() {
-        viewModel.getCurrentLineIndex().observe(getViewLifecycleOwner(), line -> {
-            if (line != null && line >= 0) {
-                recycler.smoothScrollToPosition(line);
-            }
+
+    private void observeScrollPercent() {
+        viewModel.scrollPercent.observe(getViewLifecycleOwner(), pct -> {
+            // 1) total de contenido – lo que cabe en pantalla
+            int range = recycler.computeVerticalScrollRange()
+                    - recycler.computeVerticalScrollExtent();
+            // 2) offset objetivo según porcentaje
+            int targetOffset = Math.round(range * pct);
+            // 3) offset actual
+            int currentOffset = recycler.computeVerticalScrollOffset();
+            // 4) desplazar la diferencia
+            recycler.scrollBy(0, targetOffset - currentOffset);
         });
     }
+
 
     private void observeCorrectIndices() {
         viewModel.getCorrectIndices().observe(getViewLifecycleOwner(), adapter::setCorrectIndices);
@@ -276,7 +303,10 @@ public class PracticeChordsOptimizedFragment extends Fragment {
         viewModel.scoreEvent.observe(getViewLifecycleOwner(), ev -> {
             Integer score = ev.getIfNotHandled();
             if (score != null) {
+             tvCurrentChordName.setText("");             // Quita nombre del acorde
                 showScoreResult(score);
+                adapter.resetVisualState();         // ← AÑADIR AQUÍ
+                gridView.clearDiagram();            // ← Y AQUÍ
             }
         });
     }
@@ -291,23 +321,30 @@ public class PracticeChordsOptimizedFragment extends Fragment {
 
     private void observeRunningState() {
         viewModel.isRunning.observe(getViewLifecycleOwner(), running -> {
-            boolean isActive = Boolean.TRUE.equals(running);  // ← Esto debe ir primero
-            switchMode.setEnabled(!Boolean.TRUE.equals(running));
-            spinnerSpeed.setEnabled(!Boolean.TRUE.equals(running));
-            cbMetronome.setEnabled(!Boolean.TRUE.equals(running));
-            if (running != null && running) {
-                btnStartStop.setText("Terminar");
-            } else {
-                btnStartStop.setText("Empezar");
-            }
 
+            boolean isActive = Boolean.TRUE.equals(running);
 
-            // Activar o desactivar el callback según el estado de práctica
+            switchMode.setEnabled(!isActive);
+            spinnerSpeed.setEnabled(!isActive);
+            cbMetronome.setEnabled(!isActive);
+            btnStartStop.setText(isActive ? "Terminar" : "Empezar");
+
             if (exitCallback != null) {
                 exitCallback.setEnabled(isActive);
             }
+            if (isActive) {
+                fabMic.setVisibility(View.VISIBLE);
+                startMicAnimation();
+            } else {
+                stopMicAnimation();
+                fabMic.setVisibility(View.GONE);
+            }
+            if (requireActivity() instanceof MainContainerActivity) {
+                ((MainContainerActivity) requireActivity()).setPracticeRunning(isActive);
+            }
         });
     }
+
 
     private void setupStartStopButton() {
         btnStartStop.setOnClickListener(v -> {
@@ -379,6 +416,8 @@ public class PracticeChordsOptimizedFragment extends Fragment {
                 .setMessage("Si sales, perderás tu progreso actual. ¿Deseas continuar?")
                 .setPositiveButton("Salir", (dialog, which) -> {
                     viewModel.endPractice();
+                    adapter.resetVisualState();
+                    gridView.clearDiagram();
                     ((MainContainerActivity) requireActivity()).setPracticeRunning(false);
                     requireActivity().getSupportFragmentManager().popBackStack();
                 })
@@ -388,8 +427,32 @@ public class PracticeChordsOptimizedFragment extends Fragment {
     public void terminatePracticeFromActivity() {
         if (viewModel != null) {
             viewModel.endPractice();
+            adapter.resetVisualState();         // ← AÑADIR AQUÍ
+            gridView.clearDiagram();
         }
     }
+
+    private void startMicAnimation() {
+        micAnimatorX = ObjectAnimator.ofFloat(fabMic, "scaleX", 1f, 1.15f, 1f);
+        micAnimatorX.setDuration(1000);
+        micAnimatorX.setRepeatCount(ObjectAnimator.INFINITE);
+        micAnimatorX.setInterpolator(new LinearInterpolator());
+        micAnimatorX.start();
+
+        micAnimatorY = ObjectAnimator.ofFloat(fabMic, "scaleY", 1f, 1.15f, 1f);
+        micAnimatorY.setDuration(1000);
+        micAnimatorY.setRepeatCount(ObjectAnimator.INFINITE);
+        micAnimatorY.setInterpolator(new LinearInterpolator());
+        micAnimatorY.start();
+    }
+
+    private void stopMicAnimation() {
+        if (micAnimatorX != null) micAnimatorX.cancel();
+        if (micAnimatorY != null) micAnimatorY.cancel();
+        fabMic.setScaleX(1f);
+        fabMic.setScaleY(1f);
+    }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode,

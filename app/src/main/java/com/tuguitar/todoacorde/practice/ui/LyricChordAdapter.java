@@ -103,6 +103,16 @@ public class LyricChordAdapter
         return RecyclerView.NO_POSITION;
     }
 
+    /** Limpia el estado visual de acordes (índice activo y correctos) */
+    public void resetVisualState() {
+        activeChordGlobalIndex = -1;
+        if (correctIndices != null) {
+            correctIndices.clear();
+        }
+        notifyDataSetChanged();
+    }
+
+
     @NonNull @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
