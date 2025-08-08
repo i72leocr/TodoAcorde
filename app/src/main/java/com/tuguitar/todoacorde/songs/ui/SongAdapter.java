@@ -14,13 +14,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.tuguitar.todoacorde.R;
 import com.tuguitar.todoacorde.songs.data.Song;
 
-/**
- * Adapter para la lista de canciones.
- * Usa ListAdapter + DiffUtil para actualizaciones eficientes.
- */
+import java.util.Map;
+
 public class SongAdapter extends ListAdapter<Song, SongAdapter.SongVH> {
     private OnSongClickListener onClick;
     private OnFavoriteClickListener onFavoriteToggle;
+    private Map<Integer, String> difficultyMap;
 
     public interface OnSongClickListener {
         void onSongClick(Song song);
@@ -40,7 +39,6 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongVH> {
 
             @Override
             public boolean areContentsTheSame(@NonNull Song a, @NonNull Song b) {
-                // Incluye isFavorite en la comparación para refrescar instantáneamente
                 return a.getTitle().equals(b.getTitle())
                         && a.getAuthor().equals(b.getAuthor())
                         && a.getDifficulty() == b.getDifficulty()
@@ -51,7 +49,14 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongVH> {
         this.onFavoriteToggle = onFavoriteToggle;
     }
 
-    @NonNull @Override
+    /** Setter para el Map de dificultades */
+    public void setDifficultyMap(Map<Integer, String> map) {
+        this.difficultyMap = map;
+        notifyDataSetChanged(); // forzar refresco
+    }
+
+    @NonNull
+    @Override
     public SongVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.list_item_song, parent, false);
@@ -92,7 +97,12 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongVH> {
         void bind(Song song) {
             tvTitle.setText(song.getTitle());
             tvAuthor.setText(song.getAuthor());
-            tvDifficulty.setText(String.valueOf(song.getDifficulty()));
+
+            String difficultyLabel = difficultyMap != null
+                    ? difficultyMap.get(song.getDifficulty())
+                    : String.valueOf(song.getDifficulty());
+            tvDifficulty.setText("Dif: " + difficultyLabel);
+
             btnFavorite.setImageResource(
                     song.isFavorite()
                             ? R.drawable.heart_solid_full

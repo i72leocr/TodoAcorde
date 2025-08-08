@@ -7,23 +7,24 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp"
-    android:background="#F5F5F5">
+    android:background="#F5F5F5"
+    android:fontFamily="sans-serif">
 
     <!-- BOTÓN DE MICRÓFONO ARRIBA IZQUIERDA -->
-
-    <!-- CÍRCULO DE NOTA -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btnMic"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="12dp"
-        android:layout_marginTop="16dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:fabSize="mini"
+        app:srcCompat="@drawable/ic_mic"
         app:backgroundTint="@color/primary"
+        app:tint="@android:color/white"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:fontFamily="@font/roboto_mono_extralight"
-        app:tint="@android:color/white" />
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="16dp"/>
 
+    <!-- CÍRCULO DE NOTA -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/noteCircle"
         android:layout_width="64dp"
@@ -35,7 +36,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btnMic"
-        android:fontFamily="@font/roboto_mono_extralight"
         app:strokeColor="@color/primary"
         app:strokeWidth="2dp">
 
@@ -46,18 +46,10 @@
             android:gravity="center"
             android:text="E"
             android:textColor="@color/primary"
-            android:textSize="28sp"
-            android:fontFamily="@font/roboto_mono_extralight"/>
+            android:textSize="28sp" />
     </com.google.android.material.card.MaterialCardView>
 
     <!-- BARRA DE PROGRESO -->
-
-    <!-- ICONO MENOS AMPLIADO -->
-
-    <!-- ICONO MÁS AMPLIADO -->
-
-    <!-- TEXTO DE ACCIÓN -->
-
     <SeekBar
         android:id="@+id/tuningBar"
         android:layout_width="0dp"
@@ -72,6 +64,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/noteCircle" />
 
+    <!-- ICONO MENOS AMPLIADO -->
     <ImageView
         android:id="@+id/tuningMinus"
         android:layout_width="56dp"
@@ -83,6 +76,7 @@
         app:layout_constraintStart_toStartOf="@id/tuningBar"
         app:layout_constraintTop_toBottomOf="@id/tuningBar" />
 
+    <!-- ICONO MÁS AMPLIADO -->
     <ImageView
         android:id="@+id/tuningPlus"
         android:layout_width="56dp"
@@ -94,6 +88,7 @@
         app:layout_constraintEnd_toEndOf="@id/tuningBar"
         app:layout_constraintTop_toBottomOf="@id/tuningBar" />
 
+    <!-- TEXTO DE ACCIÓN -->
     <TextView
         android:id="@+id/tensionAction"
         android:layout_width="wrap_content"
@@ -127,7 +122,6 @@
             android:src="@drawable/ic_headstock" />
 
         <!-- BOTONES DE SELECCIÓN DE CUERDA -->
-
         <ImageButton
             android:id="@+id/string6"
             android:layout_width="28dp"
@@ -219,8 +213,8 @@
             android:layout_marginStart="224dp"
             android:layout_marginTop="108dp"
             android:background="@android:color/transparent"
-            android:src="@drawable/circle_translucent_selected"
             android:elevation="4dp"
+            android:src="@drawable/circle_translucent_selected"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 

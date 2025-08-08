@@ -1,10 +1,17 @@
 package com.tuguitar.todoacorde.songs.data;
 
 import androidx.lifecycle.LiveData;
+
+import com.tuguitar.todoacorde.Difficulty;
+import com.tuguitar.todoacorde.DifficultyDao;
 import com.tuguitar.todoacorde.FavoriteSong;
 import com.tuguitar.todoacorde.FavoriteSongDao;
 import com.tuguitar.todoacorde.todoAcordeDatabase;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -12,11 +19,13 @@ import javax.inject.Singleton;
 public class SongRepository {
     private final SongDao songDao;
     private final FavoriteSongDao favoriteDao;
+    private final DifficultyDao difficultyDao;
 
     @Inject
-    public SongRepository(SongDao songDao, FavoriteSongDao favoriteDao) {
+    public SongRepository(SongDao songDao, FavoriteSongDao favoriteDao, DifficultyDao difficultyDao) {
         this.songDao = songDao;
         this.favoriteDao = favoriteDao;
+        this.difficultyDao = difficultyDao;
     }
 
     public LiveData<List<Song>> getAllSongs() {
@@ -35,5 +44,14 @@ public class SongRepository {
                 favoriteDao.delete(new FavoriteSong(userId, songId));
             }
         });
+    }
+
+    public Map<Integer, String> getDifficultyMap() {
+        List<Difficulty> difficulties = difficultyDao.getAllDifficulties();
+        Map<Integer, String> map = new HashMap<>();
+        for (Difficulty d : difficulties) {
+            map.put(d.getId(), d.getDifficultyLevel());
+        }
+        return map;
     }
 }

@@ -5,8 +5,8 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.SearchView;
 import android.widget.ImageView;
+import android.widget.SearchView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -25,6 +25,7 @@ import com.tuguitar.todoacorde.songs.domain.SongViewModel;
 import com.tuguitar.todoacorde.practice.ui.PracticeChordsOptimizedFragment;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -40,7 +41,8 @@ public class SongFragment extends Fragment {
     private SearchView searchView;
     private HeaderAdapter headerAdapter;
 
-    @Nullable @Override
+    @Nullable
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
@@ -92,6 +94,11 @@ public class SongFragment extends Fragment {
         // Inyectar ViewModel
         songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
         songViewModel.getFilteredSongs().observe(getViewLifecycleOwner(), this::submitSongs);
+
+        // NUEVO: Observar el mapa de dificultad y pasarlo al adaptador
+        songViewModel.getDifficultyMap().observe(getViewLifecycleOwner(), map -> {
+            songAdapter.setDifficultyMap(map);
+        });
     }
 
     private void onFilterChanged(boolean showFav) {
@@ -106,7 +113,6 @@ public class SongFragment extends Fragment {
     private void submitSongs(List<Song> songs) {
         songAdapter.submitList(songs);
         RecyclerView rv = requireView().findViewById(R.id.song_list);
-        // Posponer la actualización de la cabecera para evitar conflictos de layout
         rv.post(() -> headerAdapter.updateCount(songs != null ? songs.size() : 0));
     }
 

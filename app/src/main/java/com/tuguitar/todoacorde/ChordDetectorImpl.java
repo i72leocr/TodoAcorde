@@ -147,7 +147,7 @@ public class ChordDetectorImpl implements IChordDetector {
     private String detectChord(float[] pcp) {
         String best = "No Chord";
         double maxScore = 0;
-        double threshold = 0.8;
+        double threshold = 0.5;
         for (Chord chord : chordProfiles) {
             double score = computeScore(chord.getPcp(), pcp);
             Log.d(TAG, chord.getName() + " score=" + score);

@@ -1,6 +1,7 @@
 package com.tuguitar.todoacorde;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.room.Database;
@@ -47,13 +48,12 @@ import java.util.concurrent.Executors;
                 AchievementDefinitionEntity.class,
                 AchievementEntity.class
         },
-        version = 65,
+        version = 67,
         exportSchema = false
 )
-@TypeConverters({ PCPConverter.class, Converters.class })
+@TypeConverters({PCPConverter.class, Converters.class})
 public abstract class todoAcordeDatabase extends RoomDatabase {
 
-    // — DAOs existentes —
     public abstract SongDao songDao();
     public abstract ChordDao chordDao();
     public abstract SongChordDao songChordDao();
@@ -69,8 +69,6 @@ public abstract class todoAcordeDatabase extends RoomDatabase {
     public abstract ProgressionSessionDao progressionSessionDao();
     public abstract ProgressionDetailDao progressionDetailDao();
     public abstract FavoriteSongDao favoriteSongDao();
-
-    // — DAOs nuevos de logros —
     public abstract AchievementDefinitionDao achievementDefinitionDao();
     public abstract AchievementDao achievementDao();
 
@@ -92,11 +90,25 @@ public abstract class todoAcordeDatabase extends RoomDatabase {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {
                                     super.onCreate(db);
+                                    Log.d("DB_SEED", "onCreate: limpiando y sembrando base");
                                     databaseWriteExecutor.execute(() -> {
-                                        todoAcordeDatabase d = getInstance(ctx);
-                                        d.runInTransaction(() ->
-                                                DatabaseSeeder.seed(d, ctx)
-                                        );
+                                        INSTANCE.runInTransaction(() -> {
+                                            INSTANCE.clearAllTables();
+                                            DatabaseSeeder.seed(INSTANCE, ctx);
+                                            Log.d("DB_SEED", "onCreate: seed completado");
+                                        });
+                                    });
+                                }
+                                @Override
+                                public void onOpen(@NonNull SupportSQLiteDatabase db) {
+                                    super.onOpen(db);
+                                    Log.d("DB_SEED", "onOpen: limpiando y sembrando base");
+                                    databaseWriteExecutor.execute(() -> {
+                                        INSTANCE.runInTransaction(() -> {
+                                            INSTANCE.clearAllTables();
+                                            DatabaseSeeder.seed(INSTANCE, ctx);
+                                            Log.d("DB_SEED", "onOpen: seed completado");
+                                        });
                                     });
                                 }
                             })
