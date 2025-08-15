@@ -1,4 +1,6 @@
-package com.tuguitar.todoacorde;
+package com.tuguitar.todoacorde.achievements.domain.usecases;
+
+import com.tuguitar.todoacorde.EvaluateAchievementUseCase;
 
 import java.util.ArrayList;
 import java.util.Collections;

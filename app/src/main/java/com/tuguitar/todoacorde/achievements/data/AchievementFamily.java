@@ -1,4 +1,4 @@
-package com.tuguitar.todoacorde;
+package com.tuguitar.todoacorde.achievements.data;
 
 import androidx.annotation.NonNull;
 import java.util.Collections;

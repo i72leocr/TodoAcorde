@@ -8,8 +8,8 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.tuguitar.todoacorde.Achievement;
-import com.tuguitar.todoacorde.AchievementFamily;
+import com.tuguitar.todoacorde.achievements.data.Achievement;
+import com.tuguitar.todoacorde.achievements.data.AchievementFamily;
 import com.tuguitar.todoacorde.databinding.ItemAchievementBinding;
 import com.tuguitar.todoacorde.databinding.ItemSubAchievementBinding;
 import java.util.HashSet;

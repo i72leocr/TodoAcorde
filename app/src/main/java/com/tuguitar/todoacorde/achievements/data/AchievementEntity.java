@@ -1,10 +1,12 @@
-package com.tuguitar.todoacorde;
+package com.tuguitar.todoacorde.achievements.data;
 
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.TypeConverters;
-import com.tuguitar.todoacorde.Achievement.Level;
+
+import com.tuguitar.todoacorde.Converters;
+import com.tuguitar.todoacorde.achievements.data.Achievement.Level;
 
 /**
  * Entidad Room para persistir el estado del logro por familia y nivel.

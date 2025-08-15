@@ -1,10 +1,10 @@
 package com.tuguitar.todoacorde.achievements.domain.usecases;
 
-import com.tuguitar.todoacorde.Achievement;
-import com.tuguitar.todoacorde.AchievementDao;
+import com.tuguitar.todoacorde.achievements.data.Achievement;
+import com.tuguitar.todoacorde.achievements.data.AchievementDao;
 import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionDao;
 import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionEntity;
-import com.tuguitar.todoacorde.AchievementEntity;
+import com.tuguitar.todoacorde.achievements.data.AchievementEntity;
 import com.tuguitar.todoacorde.AppExecutors;
 import com.tuguitar.todoacorde.EvaluateAchievementUseCase;
 import com.tuguitar.todoacorde.FamilyId;

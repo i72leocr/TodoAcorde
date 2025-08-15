@@ -10,11 +10,12 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModel;
 
-import com.tuguitar.todoacorde.LineItem;
+import com.tuguitar.todoacorde.practice.data.LineItem;
 import com.tuguitar.todoacorde.SongWithDetails;
 import com.tuguitar.todoacorde.metronome.domain.MetronomeManager;
 import com.tuguitar.todoacorde.practice.data.PracticeRepository;
 import com.tuguitar.todoacorde.practice.data.SongUserSpeed;
+import com.tuguitar.todoacorde.practice.data.SpanInfo;
 import com.tuguitar.todoacorde.songs.data.Song;
 import com.tuguitar.todoacorde.songs.data.SongChordWithInfo;
 
@@ -387,10 +388,10 @@ public class PracticeViewModel extends ViewModel implements PracticeSessionManag
 
     /** Calculate which lyric line (index) corresponds to the given global chord index in the sequence. */
     private int calculateLineForGlobalIndex(int globalIdx) {
-        List<com.tuguitar.todoacorde.LineItem> lines = sequenceManager.getLineItems().getValue();
+        List<LineItem> lines = sequenceManager.getLineItems().getValue();
         if (lines == null) return -1;
         for (int i = 0; i < lines.size(); i++) {
-            for (com.tuguitar.todoacorde.SpanInfo span : lines.get(i).spans) {
+            for (SpanInfo span : lines.get(i).spans) {
                 if (span.globalIndex == globalIdx) {
                     return i;
                 }

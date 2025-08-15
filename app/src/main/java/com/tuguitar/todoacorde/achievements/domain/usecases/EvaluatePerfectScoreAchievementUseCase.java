@@ -6,16 +6,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.tuguitar.todoacorde.AchievementDao;
+import com.tuguitar.todoacorde.achievements.data.AchievementDao;
 import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionDao;
 import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionEntity;
-import com.tuguitar.todoacorde.AchievementEntity;
+import com.tuguitar.todoacorde.achievements.data.AchievementEntity;
 import com.tuguitar.todoacorde.AppExecutors;
 import com.tuguitar.todoacorde.EvaluateAchievementUseCase;
 import com.tuguitar.todoacorde.FamilyId;
 import com.tuguitar.todoacorde.SessionManager;
 import com.tuguitar.todoacorde.practice.data.PracticeSessionDao;
-import com.tuguitar.todoacorde.Achievement.Level;
+import com.tuguitar.todoacorde.achievements.data.Achievement.Level;
 
 public class EvaluatePerfectScoreAchievementUseCase implements EvaluateAchievementUseCase {
 

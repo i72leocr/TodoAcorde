@@ -5,6 +5,7 @@ import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.TypeConverters;
 
+import com.tuguitar.todoacorde.achievements.data.Achievement;
 import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionEntity;
 
 /**

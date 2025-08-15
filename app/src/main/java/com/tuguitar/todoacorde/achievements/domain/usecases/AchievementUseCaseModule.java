@@ -1,9 +1,9 @@
-package com.tuguitar.todoacorde;
+package com.tuguitar.todoacorde.achievements.domain.usecases;
 
+import com.tuguitar.todoacorde.AppExecutors;
+import com.tuguitar.todoacorde.SessionManager;
+import com.tuguitar.todoacorde.achievements.data.AchievementDao;
 import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionDao;
-import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluatePerfectScoreAchievementUseCase;
-import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluateSpeedUnlockAchievementUseCase;
-import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluateUniqueChordsAchievementUseCase;
 import com.tuguitar.todoacorde.practice.data.PracticeDetailDao;
 import com.tuguitar.todoacorde.practice.data.PracticeSessionDao;
 import com.tuguitar.todoacorde.practice.data.SongUserSpeedDao;

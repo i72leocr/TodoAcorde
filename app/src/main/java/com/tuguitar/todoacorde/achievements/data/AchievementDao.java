@@ -1,4 +1,4 @@
-package com.tuguitar.todoacorde;
+package com.tuguitar.todoacorde.achievements.data;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;

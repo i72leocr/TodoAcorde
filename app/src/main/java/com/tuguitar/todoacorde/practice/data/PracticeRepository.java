@@ -8,12 +8,8 @@ import androidx.lifecycle.Transformations;
 import com.tuguitar.todoacorde.AppExecutors;
 import com.tuguitar.todoacorde.Chord;
 import com.tuguitar.todoacorde.ChordDao;
-import com.tuguitar.todoacorde.FavoriteSong;
-import com.tuguitar.todoacorde.FavoriteSongDao;
-import com.tuguitar.todoacorde.ProgressionDetail;
-import com.tuguitar.todoacorde.ProgressionDetailDao;
-import com.tuguitar.todoacorde.ProgressionSession;
-import com.tuguitar.todoacorde.ProgressionSessionDao;
+import com.tuguitar.todoacorde.songs.data.FavoriteSong;
+import com.tuguitar.todoacorde.songs.data.FavoriteSongDao;
 import com.tuguitar.todoacorde.songs.data.SongChordWithInfo;
 import com.tuguitar.todoacorde.SongWithDetails;
 import com.tuguitar.todoacorde.songs.data.SongChord;
@@ -43,9 +39,6 @@ public class PracticeRepository {
     private final PracticeDetailDao practiceDetailDao;
     private final SongUserSpeedDao songUserSpeedDao;
     private final FavoriteSongDao favoriteSongDao;
-    private final ProgressionSessionDao progressionSessionDao;
-    private final ProgressionDetailDao progressionDetailDao;
-
     private final Map<Integer, LiveData<SongWithDetails>> songDetailsCache = new HashMap<>();
     private LiveData<List<Chord>> allChords;
     private final Map<String, LiveData<Integer>> bestScoreCache = new HashMap<>();
@@ -62,9 +55,7 @@ public class PracticeRepository {
             PracticeSessionDao practiceSessionDao,
             PracticeDetailDao practiceDetailDao,
             SongUserSpeedDao songUserSpeedDao,
-            FavoriteSongDao favoriteSongDao,
-            ProgressionSessionDao progressionSessionDao,
-            ProgressionDetailDao progressionDetailDao
+            FavoriteSongDao favoriteSongDao
     ) {
         this.songDao               = songDao;
         this.songChordDao          = songChordDao;
@@ -74,8 +65,6 @@ public class PracticeRepository {
         this.practiceDetailDao     = practiceDetailDao;
         this.songUserSpeedDao      = songUserSpeedDao;
         this.favoriteSongDao       = favoriteSongDao;
-        this.progressionSessionDao = progressionSessionDao;
-        this.progressionDetailDao  = progressionDetailDao;
     }
 
     public LiveData<SongWithDetails> getSongDetails(int songId) {
@@ -254,17 +243,6 @@ public class PracticeRepository {
         Log.d(TAG, "Removing FavoriteSong songId=" + fav.songId + ", userId=" + fav.userId);
         favoriteSongDao.delete(fav);
     }
-
-    public void insertOrUpdateProgressionSession(ProgressionSession session) {
-        Log.d(TAG, "Inserting/updating ProgressionSession id=" + session.id);
-        progressionSessionDao.insertOrUpdateSession(session);
-    }
-
-    public void insertProgressionDetails(List<ProgressionDetail> details) {
-        Log.d(TAG, "Inserting ProgressionDetails size=" + details.size());
-        progressionDetailDao.insertDetails(details);
-    }
-
     public LiveData<List<PracticeDetailDao.ChordPercentage>> getTopErroredChords(int songId, long since) {
         Log.d(TAG, "Fetching topErroredChords for songId=" + songId + ", since=" + since);
         return practiceDetailDao.getTopErroredChordsByPercentage(songId, since);

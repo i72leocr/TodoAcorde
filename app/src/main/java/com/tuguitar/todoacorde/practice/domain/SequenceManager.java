@@ -9,8 +9,8 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.tuguitar.todoacorde.Chord;
 import com.tuguitar.todoacorde.IChordDetector;
-import com.tuguitar.todoacorde.LineItem;
-import com.tuguitar.todoacorde.SpanInfo;
+import com.tuguitar.todoacorde.practice.data.LineItem;
+import com.tuguitar.todoacorde.practice.data.SpanInfo;
 import com.tuguitar.todoacorde.practice.data.PracticeRepository;
 import com.tuguitar.todoacorde.songs.data.SongChord;
 import com.tuguitar.todoacorde.songs.data.SongLyric;

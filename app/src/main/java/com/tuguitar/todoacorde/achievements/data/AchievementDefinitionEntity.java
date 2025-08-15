@@ -4,7 +4,6 @@ import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.TypeConverters;
 
-import com.tuguitar.todoacorde.Achievement;
 import com.tuguitar.todoacorde.Converters;
 
 /**

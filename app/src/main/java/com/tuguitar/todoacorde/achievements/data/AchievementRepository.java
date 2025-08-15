@@ -2,7 +2,7 @@ package com.tuguitar.todoacorde.achievements.data;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
-import com.tuguitar.todoacorde.Achievement;
+
 import java.util.List;
 
 /**
