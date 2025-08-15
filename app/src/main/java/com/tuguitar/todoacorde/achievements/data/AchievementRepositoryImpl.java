@@ -4,7 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 
-import com.tuguitar.todoacorde.AchievementUseCaseRegistry;
+import com.tuguitar.todoacorde.achievements.domain.usecases.AchievementUseCaseRegistry;
 import com.tuguitar.todoacorde.EvaluateAchievementUseCase;
 import com.tuguitar.todoacorde.FamilyId;
 import com.tuguitar.todoacorde.SessionManager;
