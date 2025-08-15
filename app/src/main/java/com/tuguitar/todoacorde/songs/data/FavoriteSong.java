@@ -5,7 +5,7 @@
  * - Foreign keys ensure referential integrity with CASCADE deletes.
  * - Consider adding @Index on songId if querying by song frequently.
  */
-package com.tuguitar.todoacorde;
+package com.tuguitar.todoacorde.songs.data;
 
 import static androidx.room.ForeignKey.CASCADE;
 
@@ -13,7 +13,7 @@ import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.Index;
 
-import com.tuguitar.todoacorde.songs.data.Song;
+import com.tuguitar.todoacorde.User;
 
 @Entity(
         tableName = "favorite_songs",

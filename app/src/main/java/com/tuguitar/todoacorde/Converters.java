@@ -1,5 +1,8 @@
 package com.tuguitar.todoacorde;
 import androidx.room.TypeConverter;
+
+import com.tuguitar.todoacorde.achievements.data.Achievement;
+
 /**
  * Conversor para que Room pueda persistir el enum Level.
  */

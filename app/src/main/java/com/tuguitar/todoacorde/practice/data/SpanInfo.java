@@ -1,4 +1,4 @@
-package com.tuguitar.todoacorde;
+package com.tuguitar.todoacorde.practice.data;
 
 /**
  * Representa un tramo de texto (start…end-1) en el chordLine

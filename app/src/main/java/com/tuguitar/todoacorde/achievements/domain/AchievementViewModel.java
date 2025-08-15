@@ -5,8 +5,8 @@ import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.tuguitar.todoacorde.Achievement;
-import com.tuguitar.todoacorde.AchievementFamily;
+import com.tuguitar.todoacorde.achievements.data.Achievement;
+import com.tuguitar.todoacorde.achievements.data.AchievementFamily;
 import com.tuguitar.todoacorde.achievements.data.AchievementRepository;
 
 import java.util.ArrayList;

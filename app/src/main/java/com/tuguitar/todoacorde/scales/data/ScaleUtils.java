@@ -1,10 +1,9 @@
 package com.tuguitar.todoacorde.scales.data;
 
-import com.tuguitar.todoacorde.NoteUtils;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 public class ScaleUtils {
 
@@ -104,4 +103,42 @@ public class ScaleUtils {
                 return "";
         }
     }
+
+    public static ScaleType fromDbTypeName(String raw) {
+        if (raw == null) return ScaleType.MAJOR;
+        String t = raw.trim().toLowerCase(Locale.ROOT);
+        switch (t) {
+            case "ionian":
+            case "major":
+                return ScaleType.MAJOR;
+            case "aeolian":
+            case "natural minor":
+                return ScaleType.NATURAL_MINOR;
+            case "harmonic minor":
+                return ScaleType.HARMONIC_MINOR;
+            case "melodic minor (asc)":
+            case "melodic minor":
+                return ScaleType.MELODIC_MINOR_ASC;
+            case "dorian":
+                return ScaleType.DORIAN;
+            case "phrygian":
+                return ScaleType.PHRYGIAN;
+            case "lydian":
+                return ScaleType.LYDIAN;
+            case "mixolydian":
+                return ScaleType.MIXOLYDIAN;
+            case "locrian":
+                return ScaleType.LOCRIAN;
+            // por si algún día metes estas por BD:
+            case "pentatonic major":
+                return ScaleType.PENTATONIC_MAJOR;
+            case "pentatonic minor":
+                return ScaleType.PENTATONIC_MINOR;
+            case "blues":
+                return ScaleType.BLUES;
+            default:
+                return ScaleType.MAJOR;
+        }
+    }
+
 }

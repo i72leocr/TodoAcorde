@@ -18,9 +18,9 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.tuguitar.todoacorde.LineItem;
+import com.tuguitar.todoacorde.practice.data.LineItem;
 import com.tuguitar.todoacorde.R;
-import com.tuguitar.todoacorde.SpanInfo;
+import com.tuguitar.todoacorde.practice.data.SpanInfo;
 
 import java.util.List;
 import java.util.Set;

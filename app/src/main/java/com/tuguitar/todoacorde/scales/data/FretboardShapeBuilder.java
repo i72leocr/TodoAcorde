@@ -1,7 +1,5 @@
 package com.tuguitar.todoacorde.scales.data;
 
-import com.tuguitar.todoacorde.NoteUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 

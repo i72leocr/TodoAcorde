@@ -1,5 +1,6 @@
 package com.tuguitar.todoacorde;
 
+import com.tuguitar.todoacorde.achievements.data.AchievementDao;
 import com.tuguitar.todoacorde.achievements.data.AchievementDefinitionDao;
 import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluatePerfectScoreAchievementUseCase;
 import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluateSpeedUnlockAchievementUseCase;

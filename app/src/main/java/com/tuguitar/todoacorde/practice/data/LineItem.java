@@ -1,4 +1,4 @@
-package com.tuguitar.todoacorde;
+package com.tuguitar.todoacorde.practice.data;
 
 import java.util.List;
 

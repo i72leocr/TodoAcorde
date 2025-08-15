@@ -4,8 +4,6 @@ import androidx.lifecycle.LiveData;
 
 import com.tuguitar.todoacorde.Difficulty;
 import com.tuguitar.todoacorde.DifficultyDao;
-import com.tuguitar.todoacorde.FavoriteSong;
-import com.tuguitar.todoacorde.FavoriteSongDao;
 import com.tuguitar.todoacorde.todoAcordeDatabase;
 
 import java.util.HashMap;

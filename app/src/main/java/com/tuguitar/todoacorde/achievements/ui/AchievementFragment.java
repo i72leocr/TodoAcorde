@@ -6,8 +6,8 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.google.android.material.snackbar.Snackbar;
-import com.tuguitar.todoacorde.Achievement;
-import com.tuguitar.todoacorde.AchievementFamily;
+import com.tuguitar.todoacorde.achievements.data.Achievement;
+import com.tuguitar.todoacorde.achievements.data.AchievementFamily;
 import com.tuguitar.todoacorde.achievements.domain.AchievementViewModel;
 import com.tuguitar.todoacorde.databinding.FragmentAchievementsBinding;
 
