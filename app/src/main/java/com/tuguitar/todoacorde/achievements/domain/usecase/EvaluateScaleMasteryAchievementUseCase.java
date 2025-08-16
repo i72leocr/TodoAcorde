@@ -181,8 +181,10 @@ public class EvaluateScaleMasteryAchievementUseCase {
 
     private int safeVariantsCount(@NonNull String englishType, @NonNull String root) {
         try {
+            // Normaliza por si viniera algún alias inglés no canónico
+            String canonical = normalizeEnglishTypeAlias(englishType);
             List<PatternRepository.PatternVariant> vs =
-                    patternRepo.getVariantsByTypeAndRoot(englishType, root);
+                    patternRepo.getVariantsByTypeAndRoot(canonical, root);
             return (vs != null) ? vs.size() : 0;
         } catch (Throwable t) {
             Log.e(TAG, "safeVariantsCount error for " + englishType + " / " + root + ": " + t.getMessage());
@@ -203,6 +205,9 @@ public class EvaluateScaleMasteryAchievementUseCase {
     /**
      * Mapeo ES → EN a los nombres canónicos que usa PatternRepository/JSON.
      * (Devuelve el nombre original si no encuentra mapeo).
+     *
+     * NOTA: devolvemos SIEMPRE un alias inglés normalizado (normalizeEnglishTypeAlias)
+     *       para coincidir con la normalización del seeder.
      */
     private String mapDbNameToEnglishType(String es) {
         if (es == null) return "";
@@ -225,7 +230,10 @@ public class EvaluateScaleMasteryAchievementUseCase {
 
         // Flamenco / exóticos
         inv.put("frigia dominante",  "Phrygian Dominant");
-        inv.put("modo flamenco (mayor-frigio)", "Flamenco Mode (Major-Phrygian)");
+        // 🔧 IMPORTANTE: este alias debe resolverse a "Phrygian Dominant"
+        // para coincidir con la normalización del seeder/patrones
+        inv.put("modo flamenco (mayor-frigio)", "Phrygian Dominant");
+
         inv.put("doble armónica mayor", "Double Harmonic Major");
         inv.put("española 8 tonos",  "Spanish 8-Tone");
 
@@ -234,7 +242,45 @@ public class EvaluateScaleMasteryAchievementUseCase {
         inv.put("menor melódica",    "Melodic Minor (Asc)");
 
         String en = inv.get(s);
-        return en != null ? en : es;
+        // Normaliza a canónico por si el valor ya viniera en inglés o con otro alias
+        return normalizeEnglishTypeAlias(en != null ? en : es);
+    }
+
+    /**
+     * Normalización de ALIAS en inglés → forma canónica que usa PatternRepository.
+     * Debe estar alineada con la normalización del seeder.
+     */
+    private String normalizeEnglishTypeAlias(String st) {
+        if (st == null) return "";
+        String k = st.trim().toLowerCase(Locale.ROOT);
+
+        // Typos y variaciones evidentes
+        if (k.equals("ionion")) return "Ionian";
+
+        // Flamenco / Frigio mayor (alias)
+        if (k.equals("flamenco mode (major-phrygian)")
+                || k.equals("flamenco mode")
+                || k.equals("major-phrygian")
+                || k.equals("major phrygian")
+                || k.equals("spanish phrygian")
+                || k.equals("phrygian dominant (flamenco)")) {
+            return "Phrygian Dominant";
+        }
+
+        // Pentatónicas (orden de palabras)
+        if (k.equals("pentatonic major") || k.equals("major pentatonic")) return "Major Pentatonic";
+        if (k.equals("pentatonic minor") || k.equals("minor pentatonic")) return "Minor Pentatonic";
+
+        // Spanish 8-Tone (guiones y espacios)
+        if (k.equals("spanish 8 tone") || k.equals("spanish 8-tone")) return "Spanish 8-Tone";
+
+        // Melodic minor
+        if (k.equals("melodic minor (asc)") || k.equals("melodic minor asc") || k.equals("melodic minor")) {
+            return "Melodic Minor (Asc)";
+        }
+
+        // Capitaliza primera letra si no tocamos nada
+        return st.substring(0,1).toUpperCase(Locale.ROOT) + st.substring(1);
     }
 
     private static Difficulty mapTierToDifficulty(int tier) {

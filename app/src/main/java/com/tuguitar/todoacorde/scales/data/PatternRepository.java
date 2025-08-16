@@ -8,9 +8,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -83,7 +85,7 @@ public class PatternRepository {
 
     @WorkerThread @NonNull
     public List<ScalePattern> findPatterns(@Nullable String scaleType, @Nullable String rootNote) {
-        String st = trimOrNull(scaleType);
+        String st = normalizeType(trimOrNull(scaleType));
         String rn = normalizeRoot(rootNote); // ⇦ bemoles→sostenidos
         List<PatternWithNotes> rows = dao.findByScaleTypeAndRoot(st, rn);
         return unmod(map(rows));
@@ -92,12 +94,17 @@ public class PatternRepository {
     @WorkerThread @NonNull
     public List<String> getAllScaleTypesDistinct() {
         List<String> types = dao.getAllScaleTypesDistinct();
-        return unmod(new ArrayList<>(types != null ? types : Collections.emptyList()));
+        // Aunque DB ya debería estar canónica, normalizamos por robustez y quitamos duplicados.
+        Set<String> canon = new LinkedHashSet<>();
+        if (types != null) {
+            for (String t : types) canon.add(normalizeType(t));
+        }
+        return unmod(new ArrayList<>(canon));
     }
 
     @WorkerThread @NonNull
     public List<String> getRootsForType(@Nullable String scaleType) {
-        String st = trimOrNull(scaleType);
+        String st = normalizeType(trimOrNull(scaleType));
         if (st == null || st.trim().isEmpty()) return Collections.emptyList();
         List<String> roots = dao.getRootsForType(st);
         return unmod(new ArrayList<>(roots != null ? roots : Collections.emptyList()));
@@ -106,7 +113,7 @@ public class PatternRepository {
     /** Todas las variantes (cajas) para un tipo+raíz, sin duplicados “fantasma”. */
     @WorkerThread @NonNull
     public List<PatternVariant> getVariantsByTypeAndRoot(@Nullable String scaleType, @Nullable String rootNote) {
-        String st = trimOrNull(scaleType);
+        String st = normalizeType(trimOrNull(scaleType));
         String rn = normalizeRoot(rootNote); // ⇦ soporta 'Bb' → 'A#'
         List<PatternWithNotes> rows = dao.findByScaleTypeAndRoot(st, rn);
 
@@ -129,8 +136,8 @@ public class PatternRepository {
             tmp.add(new PatternVariant(
                     r.pattern.id,
                     r.pattern.name,
-                    r.pattern.scaleType,
-                    r.pattern.rootNote,
+                    normalizeType(r.pattern.scaleType),  // guardamos canónico en el modelo
+                    normalizeRoot(r.pattern.rootNote),
                     start, end,
                     r.pattern.positionIndex,
                     r.pattern.system,
@@ -187,7 +194,12 @@ public class PatternRepository {
         for (PatternWithNotes row : rows) {
             if (row == null || row.pattern == null) continue;
             List<ScaleFretNote> notes = mapNotes(row.notes);
-            out.add(new ScalePattern(row.pattern.name, row.pattern.scaleType, row.pattern.rootNote, notes));
+            out.add(new ScalePattern(
+                    row.pattern.name,
+                    normalizeType(row.pattern.scaleType),
+                    normalizeRoot(row.pattern.rootNote),
+                    notes
+            ));
         }
         return out;
     }
@@ -240,6 +252,47 @@ public class PatternRepository {
             case "B#": return "C";
             default:   return r;
         }
+    }
+
+    /** Normaliza aliases/typos de tipos ingleses a forma canónica (coherente con VM/UseCases/Seeder). */
+    @Nullable
+    private static String normalizeType(@Nullable String st) {
+        if (st == null) return null;
+        String k = st.trim();
+        if (k.isEmpty()) return null;
+
+        String low = k.toLowerCase(Locale.ROOT);
+
+        // Typos comunes
+        if (low.equals("ionion")) return "Ionian";
+
+        // Flamenco / Frigio mayor (varios aliases)
+        if (low.equals("flamenco mode (major-phrygian)")
+                || low.equals("flamenco mode")
+                || low.equals("major-phrygian")
+                || low.equals("major phrygian")
+                || low.equals("spanish phrygian")
+                || low.equals("phrygian dominant (flamenco)")) {
+            return "Phrygian Dominant";
+        }
+
+        // Pentatónicas
+        if (low.equals("pentatonic major")) return "Major Pentatonic";
+        if (low.equals("pentatonic minor")) return "Minor Pentatonic";
+
+        // Spanish 8-Tone
+        if (low.equals("spanish 8 tone")) return "Spanish 8-Tone";
+
+        // Melodic minor
+        if (low.equals("melodic minor (asc)") || low.equals("melodic minor asc") || low.equals("melodic minor")) {
+            return "Melodic Minor (Asc)";
+        }
+
+        // Capitaliza primera letra si viene en minúsculas
+        if (Character.isLowerCase(k.charAt(0))) {
+            return k.substring(0,1).toUpperCase(Locale.ROOT) + k.substring(1);
+        }
+        return k;
     }
 
     @NonNull

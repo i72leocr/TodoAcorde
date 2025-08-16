@@ -22,6 +22,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.button.MaterialButton;
 import com.tuguitar.todoacorde.R;
 import com.tuguitar.todoacorde.SessionManager;
 import com.tuguitar.todoacorde.scales.data.NoteUtils;
@@ -57,6 +58,8 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
     private View btnNotesLeft;
     private View btnNotesRight;
 
+    @Nullable private MaterialButton btnOpenTiers;
+
     private NoteBubblesHelper bubbles;
     private PitchInputController pitchController;
 
@@ -64,14 +67,11 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
     private ArrayAdapter<String> adapterRoots;
     private ArrayAdapter<String> adapterVariants;
 
-    // Bloqueo global para evitar bucles de onItemSelected al aplicar UiState
     private boolean suppressUiCallbacks = false;
 
     private int previousIndex = -1;
     private final Handler uiHandler = new Handler();
 
-    // ====== AUTO-COMPLETADO (simulación de notas) ======
-    // Actívalo para que la práctica se complete sola (sin micrófono).
     private boolean autoPlayEnabled = true;
     private boolean autoFeeding = false;
 
@@ -89,7 +89,9 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
         super.onViewCreated(view, savedInstanceState);
         Log.d(TAG, "onViewCreated()");
 
+        // ⚠️ Fragment-scoped VM
         viewModel = new ViewModelProvider(this).get(ScaleTrainerViewModel.class);
+        Log.d(TAG, "VM instance @" + System.identityHashCode(viewModel));
 
         tvScaleTitle       = view.findViewById(R.id.tvScaleTitle);
         scrollScaleNotes   = view.findViewById(R.id.hScrollNotes);
@@ -104,6 +106,16 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
         scaleFretboardView = view.findViewById(R.id.scaleFretboard);
         btnNotesLeft       = view.findViewById(R.id.btnNotesLeft);
         btnNotesRight      = view.findViewById(R.id.btnNotesRight);
+        btnOpenTiers       = view.findViewById(R.id.btnOpenTiers);
+
+        // ✅ MUY IMPORTANTE: el diálogo debe ser hijo del fragment para compartir el MISMO VM
+        if (btnOpenTiers != null) {
+            btnOpenTiers.setOnClickListener(v ->
+                    new ScaleTierPickerDialog().show(getChildFragmentManager(), "scale_tier_picker")
+            );
+        }
+
+        if (spinnerScaleType != null) spinnerScaleType.setVisibility(View.GONE);
 
         bubbles = new NoteBubblesHelper(
                 requireContext(),
@@ -120,13 +132,11 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
 
         btnStartScale.setOnClickListener(v -> onStartOrStopClicked());
 
-        // Usuario actual → ViewModel
         SessionManager sessionManager = new SessionManager(requireContext());
         long uid = sessionManager.getCurrentUserId();
         Log.d(TAG, "onViewCreated -> currentUserId=" + uid);
         viewModel.setCurrentUserId(uid);
 
-        // Carga inicial
         viewModel.onInit();
     }
 
@@ -195,11 +205,9 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
         setUiEnabled(false);
         btnStartScale.setText("Terminar");
 
-        // En modo AUTO no arrancamos el micrófono. El auto-feed se lanza
-        // desde el observer cuando el estado cambie a RUNNING y haya notes.
         if (!autoPlayEnabled) {
-            pitchController.start();     // mic
-            updateExpectedGate();        // gate por la nota esperada
+            pitchController.start();
+            updateExpectedGate();
         }
     }
 
@@ -208,6 +216,7 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
         spinnerScaleType.setEnabled(enabled);
         spinnerRoot.setEnabled(enabled);
         spinnerVariant.setEnabled(enabled);
+        if (btnOpenTiers != null) btnOpenTiers.setEnabled(enabled);
     }
 
     private void setupObservers() {
@@ -223,16 +232,17 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
                     + " selRootIdx=" + s.selectedRootIndex
                     + " selVarIdx=" + s.selectedVariantIndex
                     + " state=" + s.state
+                    + " easy=" + (s.easyItems==null?-1:s.easyItems.size())
+                    + " medium=" + (s.mediumItems==null?-1:s.mediumItems.size())
+                    + " hard=" + (s.hardItems==null?-1:s.hardItems.size())
             );
 
             if (s.error != null && !s.error.isEmpty()) {
                 Toast.makeText(requireContext(), s.error, Toast.LENGTH_SHORT).show();
             }
 
-            // Aplicación atómica de spinners y resto de UI
             suppressUiCallbacks = true;
             try {
-                // Tipos
                 if (shouldReplace(adapterTypes, s.typesAllowed)) {
                     Log.d(TAG, "apply types -> " + s.typesAllowed.size());
                     applyItems(adapterTypes, s.typesAllowed);
@@ -241,7 +251,6 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
                     spinnerScaleType.setSelection(s.selectedTypeIndex, false);
                 }
 
-                // Raíces
                 if (shouldReplace(adapterRoots, s.roots)) {
                     Log.d(TAG, "apply roots -> " + s.roots.size());
                     applyItems(adapterRoots, s.roots);
@@ -250,7 +259,6 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
                     spinnerRoot.setSelection(s.selectedRootIndex, false);
                 }
 
-                // Variantes
                 if (shouldReplace(adapterVariants, s.variantLabels)) {
                     Log.d(TAG, "apply variants -> " + s.variantLabels.size());
                     applyItems(adapterVariants, s.variantLabels);
@@ -261,10 +269,8 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
                     spinnerVariant.setSelection(0, false);
                 }
 
-                // Título
                 tvScaleTitle.setText(s.title != null ? s.title : "");
 
-                // Fretboard
                 scaleFretboardView.setHighlightSequence(s.highlightPath != null ? s.highlightPath : new ArrayList<>());
                 if (s.currentIndex >= 0 && s.highlightPath != null && s.currentIndex < s.highlightPath.size()) {
                     scaleFretboardView.setHighlightIndex(s.currentIndex);
@@ -274,41 +280,32 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
                 scaleFretboardView.setScaleNotes(extractNotesForBoard(s.highlightPath));
                 scaleFretboardView.invalidate();
 
-                // Notas (burbujas)
                 List<String> display = new ArrayList<>();
                 if (s.scaleNotes != null) for (String n : s.scaleNotes) display.add(NoteUtils.normalizeToSharp(n));
                 bubbles.setNotes(display);
                 bubbles.highlight(s.state == ScaleTrainerViewModel.PracticeState.RUNNING ? s.currentIndex : -1);
 
-                // Autodesplazamiento tras layout
                 if (s.state == ScaleTrainerViewModel.PracticeState.RUNNING && s.currentIndex >= 0) {
                     scrollScaleNotes.post(() -> bubbles.scrollTo(s.currentIndex));
                 }
 
-                // Progreso
                 tvProgress.setText(String.format(Locale.getDefault(), "Progreso: %.0f%%", s.progressPercent));
                 if (progressBar != null) progressBar.setProgress((int) Math.round(s.progressPercent));
 
-                // ====== LÓGICA AUTO-FEED ======
                 if (autoPlayEnabled
                         && s.state == ScaleTrainerViewModel.PracticeState.RUNNING
                         && s.scaleNotes != null && !s.scaleNotes.isEmpty()
                         && !autoFeeding) {
                     autoFeeding = true;
-                    // En auto no necesitamos gate; que sea libre
                     pitchController.setExpectedRangeHz(0, 0);
-                    // Simula tocar TODA la secuencia
-                    pitchController.startAutoFeed(s.scaleNotes, /*delayMs*/ 75);
+                    pitchController.startAutoFeed(s.scaleNotes, 75);
                 }
 
-                // Estado → UI + control de entrada
                 if (s.state == ScaleTrainerViewModel.PracticeState.RUNNING) {
                     btnStartScale.setText("Terminar");
                     setUiEnabled(false);
                     if (!autoPlayEnabled) {
-                        updateExpectedGate(); // solo mic
-                    } else {
-                        // auto: sin gate, ya lo forzamos a (0,0)
+                        updateExpectedGate();
                     }
                 } else if (s.state == ScaleTrainerViewModel.PracticeState.COMPLETED) {
                     showFeedback("🎉 Completado", true);
@@ -317,18 +314,16 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
                     setUiEnabled(true);
                     btnStartScale.setText("Empezar");
                     pitchController.setExpectedRangeHz(0, 0);
-                } else { // IDLE
+                } else {
                     btnStartScale.setText("Empezar");
                     setUiEnabled(true);
                     pitchController.setExpectedRangeHz(0, 0);
-                    // Si volvemos a idle, nos aseguramos de cortar auto
                     if (autoFeeding) {
                         pitchController.stop();
                         autoFeeding = false;
                     }
                 }
 
-                // “¡Bien!” si avanzó
                 if (s.currentIndex > previousIndex && previousIndex != -1) {
                     showFeedback("¡Bien!", true);
                 }
@@ -349,9 +344,7 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
         });
     }
 
-    // =======================
-    // PitchInputController.Listener
-    // =======================
+    // ==== PitchInputController.Listener ====
     @Override
     public void onStableNote(String noteName, double centsOff) {
         Log.d(TAG, "onStableNote " + noteName + " (" + centsOff + " cents)");
@@ -368,11 +361,7 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
         Toast.makeText(requireContext(), "Permiso de micrófono requerido", Toast.LENGTH_SHORT).show();
     }
 
-    // =======================
-    // Gate esperado
-    // =======================
     private void updateExpectedGate() {
-        // En modo AUTO no aplicamos gate (no hay mic)
         if (autoPlayEnabled && autoFeeding) {
             pitchController.setExpectedRangeHz(0, 0);
             return;
@@ -399,9 +388,6 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
         pitchController.setExpectedRangeHz(min, max);
     }
 
-    // =======================
-    // Utilidades
-    // =======================
     private List<ScaleFretNote> extractNotesForBoard(List<ScaleFretNote> highlightPath) {
         return highlightPath != null ? highlightPath : new ArrayList<>();
     }
@@ -425,7 +411,7 @@ public class ScaleTrainerFragment extends Fragment implements PitchInputControll
     }
 
     private static int approxMidi(int stringIndex, int fret) {
-        final int[] OPEN_MIDI = {40, 45, 50, 55, 59, 64}; // 6ª→1ª : E2,A2,D3,G3,B3,E4
+        final int[] OPEN_MIDI = {40, 45, 50, 55, 59, 64};
         int s = Math.max(0, Math.min(5, stringIndex));
         int f = Math.max(0, fret);
         return OPEN_MIDI[s] + f;

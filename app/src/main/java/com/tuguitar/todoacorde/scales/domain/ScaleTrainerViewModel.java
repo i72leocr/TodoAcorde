@@ -16,14 +16,13 @@ import com.tuguitar.todoacorde.achievements.domain.usecase.EvaluateScaleMasteryA
 import com.tuguitar.todoacorde.scales.data.NoteUtils;
 import com.tuguitar.todoacorde.scales.data.PatternRepository;
 import com.tuguitar.todoacorde.scales.data.ScaleFretNote;
+import com.tuguitar.todoacorde.scales.data.entity.ScaleEntity;
 import com.tuguitar.todoacorde.scales.domain.repository.ProgressionRepository;
 import com.tuguitar.todoacorde.scales.domain.usecase.CompleteScaleBoxUseCase;
-import com.tuguitar.todoacorde.scales.data.entity.ScaleEntity;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -38,8 +37,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel;
 public class ScaleTrainerViewModel extends ViewModel {
 
     private static final String TAG = "ScaleVM";
-
-    /** Progresión real (NO bypass). */
     private static final boolean DEBUG_BYPASS_PROGRESSION = false;
 
     // ===== Inyectados =====
@@ -47,8 +44,10 @@ public class ScaleTrainerViewModel extends ViewModel {
     private final ProgressionRepository progressionRepo;
     private final CompleteScaleBoxUseCase completeScaleBox;
     private final Executor ioExecutor;
-    // NUEVO: use case de logros de maestría de escalas
     private final EvaluateScaleMasteryAchievementUseCase evalScaleAchievements;
+
+    // Servicio de dominio (cálculos de progresión)
+    private final ScaleProgressionCalculator progressionCalc;
 
     // ===== Main thread handler y emisión segura =====
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -62,7 +61,7 @@ public class ScaleTrainerViewModel extends ViewModel {
         public final boolean loading;
         public final String error;
 
-        public final List<String> typesAllowed;   // EN (PatternRepository)
+        public final List<String> typesAllowed;   // EN
         public final List<String> roots;          // "C","C#",...
         public final List<String> variantLabels;  // "Caja x [s–e]"
         public final List<Long> variantIds;
@@ -79,6 +78,11 @@ public class ScaleTrainerViewModel extends ViewModel {
         public final double progressPercent;
         public final PracticeState state;
 
+        // Listas agrupadas por dificultad
+        public final List<ScaleProgressionCalculator.TierItem> easyItems;
+        public final List<ScaleProgressionCalculator.TierItem> mediumItems;
+        public final List<ScaleProgressionCalculator.TierItem> hardItems;
+
         public UiState(
                 boolean loading, String error,
                 List<String> typesAllowed, List<String> roots,
@@ -87,7 +91,10 @@ public class ScaleTrainerViewModel extends ViewModel {
                 String title,
                 List<String> scaleNotes,
                 List<ScaleFretNote> highlightPath,
-                int currentIndex, int streak, double progressPercent, PracticeState state
+                int currentIndex, int streak, double progressPercent, PracticeState state,
+                List<ScaleProgressionCalculator.TierItem> easyItems,
+                List<ScaleProgressionCalculator.TierItem> mediumItems,
+                List<ScaleProgressionCalculator.TierItem> hardItems
         ) {
             this.loading = loading;
             this.error = error;
@@ -105,6 +112,9 @@ public class ScaleTrainerViewModel extends ViewModel {
             this.streak = streak;
             this.progressPercent = progressPercent;
             this.state = state;
+            this.easyItems = easyItems;
+            this.mediumItems = mediumItems;
+            this.hardItems = hardItems;
         }
 
         public static UiState empty() {
@@ -115,7 +125,8 @@ public class ScaleTrainerViewModel extends ViewModel {
                     -1, -1, -1,
                     "",
                     Collections.emptyList(), Collections.emptyList(),
-                    -1, 0, 0d, PracticeState.IDLE
+                    -1, 0, 0d, PracticeState.IDLE,
+                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList()
             );
         }
     }
@@ -159,6 +170,14 @@ public class ScaleTrainerViewModel extends ViewModel {
     private List<Long> variantsAllowedIds = new ArrayList<>();
     private List<String> variantsAllowedLabels = new ArrayList<>();
 
+    // cachés para UI (para no consultar Room en main)
+    private volatile List<ScaleProgressionCalculator.TierItem> easyItemsCache   = Collections.emptyList();
+    private volatile List<ScaleProgressionCalculator.TierItem> mediumItemsCache = Collections.emptyList();
+    private volatile List<ScaleProgressionCalculator.TierItem> hardItemsCache   = Collections.emptyList();
+
+    // 🔎 Base física detectada de tiers en BD (0 si 0/1/2, 1 si 1/2/3)
+    private int dbTierBase = 0;
+
     @Inject
     public ScaleTrainerViewModel(
             @NonNull PatternRepository patternRepository,
@@ -172,6 +191,7 @@ public class ScaleTrainerViewModel extends ViewModel {
         this.completeScaleBox = Objects.requireNonNull(completeScaleBoxUseCase);
         this.ioExecutor = Objects.requireNonNull(ioExecutor);
         this.evalScaleAchievements = Objects.requireNonNull(evalScaleAchievements);
+        this.progressionCalc = new ScaleProgressionCalculator(patternRepo, progressionRepo);
     }
 
     // ===== API desde la vista =====
@@ -186,9 +206,14 @@ public class ScaleTrainerViewModel extends ViewModel {
         setLoading(true);
         ioExecutor.execute(() -> {
             try {
+                progressionRepo.warmUpCaches();
+
+                // Detecta base de tiers en la BD (0-based vs 1-based)
+                detectDbTierBase();
+
                 allTypesEn = nonNull(patternRepo.getAllScaleTypesDistinct());
                 if (v != selectionVersion) return;
-                Log.d(TAG, "onInit() -> getAllScaleTypesDistinct size=" + allTypesEn.size() + " => " + join(allTypesEn));
+                Log.d(TAG, "onInit() -> allTypesEn size=" + allTypesEn.size() + " => " + join(allTypesEn));
 
                 if (!allTypesEn.isEmpty()) {
                     selectedTypeEn = allTypesEn.get(0);
@@ -202,6 +227,7 @@ public class ScaleTrainerViewModel extends ViewModel {
                         selectedRoot = currentRoots.get(Math.max(0, idx));
                         Log.d(TAG, "onInit() -> selectedRoot=" + selectedRoot);
                     }
+
                     recomputeAllowedTypesForCurrentRoot(v);
 
                     if (!allowedTypesEn.isEmpty() && (selectedTypeEn == null || indexOf(allowedTypesEn, selectedTypeEn) < 0)) {
@@ -211,11 +237,15 @@ public class ScaleTrainerViewModel extends ViewModel {
                     }
 
                     loadVariantsForCurrentSelection(v);
+                    recomputeTierSectionCaches(v);
                 } else {
                     Log.w(TAG, "onInit() -> allTypesEn vacío.");
+                    easyItemsCache = mediumItemsCache = hardItemsCache = Collections.emptyList();
                 }
+
                 if (v != selectionVersion) return;
                 pushUiPreviewIdle();
+
             } catch (Throwable t) {
                 if (v != selectionVersion) return;
                 Log.e(TAG, "onInit() error", t);
@@ -254,6 +284,8 @@ public class ScaleTrainerViewModel extends ViewModel {
                 }
 
                 loadVariantsForCurrentSelection(v);
+                recomputeTierSectionCaches(v);
+
                 if (v != selectionVersion) return;
                 pushUiPreviewIdle();
             } catch (Throwable t) {
@@ -286,6 +318,8 @@ public class ScaleTrainerViewModel extends ViewModel {
                 }
 
                 loadVariantsForCurrentSelection(v);
+                recomputeTierSectionCaches(v);
+
                 if (v != selectionVersion) return;
                 pushUiPreviewIdle();
             } catch (Throwable t) {
@@ -333,7 +367,8 @@ public class ScaleTrainerViewModel extends ViewModel {
                 s.title,
                 seq,
                 plannedPath,
-                0, 0, 0d, PracticeState.RUNNING
+                0, 0, 0d, PracticeState.RUNNING,
+                s.easyItems, s.mediumItems, s.hardItems
         ));
     }
 
@@ -350,7 +385,8 @@ public class ScaleTrainerViewModel extends ViewModel {
                 s.title,
                 Collections.emptyList(),
                 plannedPath,
-                -1, 0, 0d, PracticeState.IDLE
+                -1, 0, 0d, PracticeState.IDLE,
+                s.easyItems, s.mediumItems, s.hardItems
         ));
     }
 
@@ -380,7 +416,8 @@ public class ScaleTrainerViewModel extends ViewModel {
                     s.scaleNotes,
                     s.highlightPath,
                     newIdx, s.streak + 1, progress,
-                    newIdx >= seq.size() ? PracticeState.COMPLETED : PracticeState.RUNNING
+                    newIdx >= seq.size() ? PracticeState.COMPLETED : PracticeState.RUNNING,
+                    s.easyItems, s.mediumItems, s.hardItems
             );
             emit(updated);
 
@@ -398,7 +435,8 @@ public class ScaleTrainerViewModel extends ViewModel {
                     s.scaleNotes,
                     s.highlightPath,
                     idx, 0, s.progressPercent,
-                    s.state
+                    s.state,
+                    s.easyItems, s.mediumItems, s.hardItems
             );
             emit(updated);
         }
@@ -418,6 +456,7 @@ public class ScaleTrainerViewModel extends ViewModel {
             ioExecutor.execute(() -> {
                 try {
                     loadVariantsForCurrentSelection(v);
+                    recomputeTierSectionCaches(v);
                     if (v != selectionVersion) return;
                     pushUiPreviewIdle();
                 } catch (Throwable t) {
@@ -433,11 +472,6 @@ public class ScaleTrainerViewModel extends ViewModel {
 
     // ===== Internos: cálculos de progresión / variantes / guardado =====
 
-    /**
-     * Calcula tipos permitidos para la tonalidad actual **ignorando** las escalas
-     * del tier que no tienen patrones para esta tonalidad. Usa el nº de variantes reales
-     * de (type+root) para decidir si una escala está completa.
-     */
     private void recomputeAllowedTypesForCurrentRoot(long v) {
         if (selectedRoot == null) {
             allowedTypesEn = new ArrayList<>(allTypesEn);
@@ -464,93 +498,41 @@ public class ScaleTrainerViewModel extends ViewModel {
             return;
         }
 
-        // 1) Último tier desbloqueado para ESTA tonalidad, considerando solo escalas con patrones en esta tonalidad
-        int maxUnlockedTier = 0;
-        while (isTierCompletedForRoot_LOCAL(currentUserId, maxUnlockedTier, tonalityId, selectedRoot)
-                && progressionRepo.hasAnyScaleInTier(maxUnlockedTier + 1)) {
-            maxUnlockedTier++;
-        }
+        int maxUnlockedTier = computeMaxCompletedTierForRoot_OFFSET(currentUserId, tonalityId, selectedRoot);
         Log.d(TAG, "recomputeAllowedTypesForCurrentRoot -> root=" + selectedRoot
-                + " tonalityId=" + tonalityId + " maxUnlockedTier=" + maxUnlockedTier);
+                + " tonalityId=" + tonalityId + " maxUnlockedTier(logical)=" + maxUnlockedTier + " dbTierBase=" + dbTierBase);
 
-        // 2) Nombres ES permitidos de tiers 0..maxUnlockedTier
         HashSet<String> allowedEs = new HashSet<>();
-        for (int t = 0; t <= maxUnlockedTier; t++) {
-            List<ScaleEntity> tierScales = progressionRepo.getScalesByTier(t);
-            if (tierScales != null) for (ScaleEntity s : tierScales) allowedEs.add(s.name);
+        for (int logical = 0; logical <= maxUnlockedTier; logical++) {
+            int physical = logical + dbTierBase;
+            List<ScaleEntity> tierScales = progressionRepo.getScalesByTier(physical);
+            if (tierScales != null) {
+                for (ScaleEntity s : tierScales) {
+                    allowedEs.add(s.name);
+                }
+            }
         }
         Log.d(TAG, "recomputeAllowedTypesForCurrentRoot -> allowed ES size=" + allowedEs.size() + " => " + allowedEs);
 
-        // 3) Filtrado EN por desbloqueo + existencia de patrones en la root
         List<String> out = new ArrayList<>();
-        for (String en : allTypesEn) {
-            String es = mapEnglishTypeToDbName(en);
+        for (String enRaw : allTypesEn) {
+            String en = ScaleTypeMapper.normalizeEnglishTypeAlias(enRaw);
+            String es = ScaleTypeMapper.mapEnglishTypeToDbName(en);
             if (!allowedEs.contains(es)) continue;
 
             List<String> rootsForType = nonNull(patternRepo.getRootsForType(en));
-            if (indexOf(rootsForType, selectedRoot) >= 0) {
-                out.add(en);
-            }
+            if (indexOf(rootsForType, selectedRoot) >= 0) out.add(en);
         }
 
         allowedTypesEn = out;
         Log.d(TAG, "recomputeAllowedTypesForCurrentRoot -> result size=" + allowedTypesEn.size() + " => " + join(allowedTypesEn));
     }
 
-    /**
-     * Tier completo para ESTA tonalidad si TODAS las escalas del tier que
-     * SÍ tienen variantes para la tonalidad están completas, entendiendo por completo:
-     * maxCompletedBoxes(user, escala, tonalidad) >= variantesDisponibles(type+root).
-     */
-    private boolean isTierCompletedForRoot_LOCAL(long userId, int tier, long tonalityId, @NonNull String root) {
-        List<ScaleEntity> tierScales = progressionRepo.getScalesByTier(tier);
-        if (tierScales == null || tierScales.isEmpty()) {
-            Log.d(TAG, "isTierCompletedForRoot_LOCAL tier=" + tier + " -> no hay escalas, devolvemos false");
-            return false;
-        }
-
-        int relevantes = 0;
-        List<String> debug = new ArrayList<>();
-
-        for (ScaleEntity s : tierScales) {
-            String en = mapDbNameToEnglishType(s.name);
-            List<PatternRepository.PatternVariant> variants = nonNull(patternRepo.getVariantsByTypeAndRoot(en, root));
-            int disponibles = variants.size();
-
-            if (disponibles <= 0) {
-                debug.add(" - " + s.name + " [sin patrones para " + root + "] -> IGNORAR");
-                continue;
-            }
-
-            relevantes++;
-            int maxHechas = progressionRepo.getMaxCompletedBoxOrZero(userId, s.id, tonalityId);
-            boolean done = maxHechas >= disponibles;
-
-            debug.add(" - " + s.name + " [patrones " + root + ": " + disponibles + "] -> "
-                    + (done ? "COMPLETA" : "PENDIENTE") + " (" + maxHechas + "/" + disponibles + ")");
-
-            if (!done) {
-                Log.d(TAG, "isTierCompletedForRoot_LOCAL tier=" + tier + " -> NO completo. Detalle:\n" + join(debug));
-                return false;
-            }
-        }
-
-        // 🔧 FIX: si no hay escalas relevantes (ninguna con patrones para esta tonalidad),
-        // NO consideramos el tier como completo (evita desbloqueos fantasma).
-        if (relevantes == 0) {
-            Log.d(TAG, "isTierCompletedForRoot_LOCAL tier=" + tier + " -> sin escalas relevantes para " + root + ", NO completo.");
-            return false;
-        }
-
-        Log.d(TAG, "isTierCompletedForRoot_LOCAL tier=" + tier + " -> COMPLETO. Detalle:\n" + join(debug));
-        return true;
-    }
-
-    /** Versión con guardas por versión para evitar pisados de estado. */
+    /** Versión con guardas por versión para evitar pisados de estado. (IO) */
     private void loadVariantsForCurrentSelection(long v) {
         Log.d(TAG, "loadVariantsForCurrentSelection(type=" + selectedTypeEn + ", root=" + selectedRoot + ", v=" + v + ")");
         List<PatternRepository.PatternVariant> all = (selectedTypeEn != null && selectedRoot != null)
-                ? nonNull(patternRepo.getVariantsByTypeAndRoot(selectedTypeEn, selectedRoot))
+                ? nonNull(patternRepo.getVariantsByTypeAndRoot(ScaleTypeMapper.normalizeEnglishTypeAlias(selectedTypeEn), selectedRoot))
                 : Collections.emptyList();
         if (v != selectionVersion) return;
 
@@ -587,7 +569,7 @@ public class ScaleTrainerViewModel extends ViewModel {
 
         if (!variantsAllowed.isEmpty()) {
             PatternRepository.PatternVariant nearest =
-                    patternRepo.findNearestWindow(selectedTypeEn, selectedRoot, preferredStartFret, preferredEndFret);
+                    patternRepo.findNearestWindow(ScaleTypeMapper.normalizeEnglishTypeAlias(selectedTypeEn), selectedRoot, preferredStartFret, preferredEndFret);
             if (v != selectionVersion) return;
 
             Log.d(TAG, "nearestWindow -> " + (nearest==null ? "null" : ("id="+nearest.id+" ["+nearest.startFret+"-"+nearest.endFret+"]")));
@@ -622,7 +604,7 @@ public class ScaleTrainerViewModel extends ViewModel {
             try {
                 if (selectedTypeEn == null || selectedRoot == null || selectedVariantIdx < 0) return;
 
-                String esName = mapEnglishTypeToDbName(selectedTypeEn);
+                String esName = ScaleTypeMapper.mapEnglishTypeToDbName(selectedTypeEn);
                 long scaleId = progressionRepo.findScaleIdByName(esName);
                 long tonalityId = progressionRepo.findTonalityIdByName(selectedRoot);
                 Log.d(TAG, "persistCompletion -> esName=" + esName + " scaleId=" + scaleId + " tonalityId=" + tonalityId);
@@ -631,14 +613,15 @@ public class ScaleTrainerViewModel extends ViewModel {
                     return;
                 }
 
-                // Tomamos estado ANTES
                 final int availableInTonality =
-                        nonNull(patternRepo.getVariantsByTypeAndRoot(selectedTypeEn, selectedRoot)).size();
+                        nonNull(patternRepo.getVariantsByTypeAndRoot(ScaleTypeMapper.normalizeEnglishTypeAlias(selectedTypeEn), selectedRoot)).size();
                 final int beforeMaxCompleted =
                         progressionRepo.getMaxCompletedBoxOrZero(currentUserId, scaleId, tonalityId);
+                final int beforeMaxCompletedTier =
+                        computeMaxCompletedTierForRoot_OFFSET(currentUserId, tonalityId, selectedRoot);
 
                 int boxOrder = selectedVariantIdx + 1;
-                int tier = progressionRepo.findScaleTierById(scaleId);
+                int tier = progressionRepo.findScaleTierById(scaleId); // físico (ya contiene base de DB)
                 long now = System.currentTimeMillis();
 
                 CompleteScaleBoxUseCase.Result result =
@@ -647,13 +630,13 @@ public class ScaleTrainerViewModel extends ViewModel {
                         + " scaleAll=" + result.scaleCompletedAllTonalities
                         + " tierCompleted=" + result.tierCompleted);
 
-                // Estado DESPUÉS
                 final int afterMaxCompleted =
                         progressionRepo.getMaxCompletedBoxOrZero(currentUserId, scaleId, tonalityId);
+                final int afterMaxCompletedTier =
+                        computeMaxCompletedTierForRoot_OFFSET(currentUserId, tonalityId, selectedRoot);
 
                 int disponibles = availableInTonality;
 
-                // Mensaje “siguiente caja” solo si existe en esta tonalidad
                 if (result.nextBoxOrder != null && result.nextBoxOrder <= disponibles) {
                     emitEffect("¡Caja " + result.nextBoxOrder + " desbloqueada!");
                 }
@@ -661,33 +644,35 @@ public class ScaleTrainerViewModel extends ViewModel {
                 if (result.scaleCompletedAllTonalities) {
                     emitEffect("¡Escala " + esName + " completada en todas las tonalidades!");
                 }
-                if (result.tierCompleted) {
-                    emitEffect("¡Nuevas escalas desbloqueadas!");
+
+                if (afterMaxCompletedTier > beforeMaxCompletedTier) {
+                    int unlockedTier = afterMaxCompletedTier + 1;
+                    boolean existsNextTier = hasAnyScaleInPhysicalTier(unlockedTier + dbTierBase);
+                    if (existsNextTier) {
+                        emitEffect("¡Has desbloqueado las escalas de dificultad " + tierNameEs(unlockedTier) + "!");
+                    }
                 }
 
-                // === LOGROS: maestría de escalas ===
-                boolean justCompletedForTonality =
-                        (beforeMaxCompleted < disponibles) && (afterMaxCompleted >= disponibles);
-                boolean justCompletedAllTonalities = result.scaleCompletedAllTonalities;
-
                 try {
+                    boolean justCompletedForTonality = (beforeMaxCompleted < disponibles) && (afterMaxCompleted >= disponibles);
+                    boolean justCompletedAllTonalities = result.scaleCompletedAllTonalities;
                     evalScaleAchievements.onScaleCompletionEvaluated(
-                            currentUserId,
-                            scaleId,
-                            tonalityId,
-                            justCompletedForTonality,
-                            justCompletedAllTonalities
+                            currentUserId, scaleId, tonalityId,
+                            justCompletedForTonality, justCompletedAllTonalities
                     );
                 } catch (Throwable achEx) {
                     Log.e(TAG, "Error evaluando logros de escalas: " + achEx.getMessage(), achEx);
                 }
 
-                // Refrescos
+                // Refrescos (IO)
                 recomputeAllowedTypesForCurrentRoot(v);
                 if (v != selectionVersion) return;
                 loadVariantsForCurrentSelection(v);
                 if (v != selectionVersion) return;
+                recomputeTierSectionCaches(v);
+                if (v != selectionVersion) return;
 
+                // Empuja UI
                 UiState s = uiState.getValue();
                 if (s == null) s = UiState.empty();
                 pushUiWith(PracticeState.COMPLETED, s.currentIndex, s.streak, 100.0);
@@ -702,7 +687,7 @@ public class ScaleTrainerViewModel extends ViewModel {
     private int computeAllowedVariantCount(@Nullable String typeEn, @Nullable String root, int availableVariants) {
         if (typeEn == null || root == null || availableVariants <= 0) return 0;
 
-        String esName = mapEnglishTypeToDbName(typeEn);
+        String esName = ScaleTypeMapper.mapEnglishTypeToDbName(typeEn);
         long scaleId = progressionRepo.findScaleIdByName(esName);
         long tonalityId = progressionRepo.findTonalityIdByName(root);
         Log.d(TAG, "computeAllowedVariantCount -> typeEn=" + typeEn + " (ES=" + esName + ") scaleId=" + scaleId + " tonalityId=" + tonalityId + " available=" + availableVariants);
@@ -731,6 +716,15 @@ public class ScaleTrainerViewModel extends ViewModel {
 
         List<String> seqPreview = namesFromPath(plannedPath);
 
+        List<ScaleProgressionCalculator.TierItem> easy   = easyItemsCache != null ? new ArrayList<>(easyItemsCache) : Collections.emptyList();
+        List<ScaleProgressionCalculator.TierItem> medium = mediumItemsCache != null ? new ArrayList<>(mediumItemsCache) : Collections.emptyList();
+        List<ScaleProgressionCalculator.TierItem> hard   = hardItemsCache != null ? new ArrayList<>(hardItemsCache) : Collections.emptyList();
+
+        Log.d(TAG, "pushUiPreviewIdle -> UI lists sizes: easy=" + easy.size() + " medium=" + medium.size() + " hard=" + hard.size());
+        dumpTierItems("EASY", easy);
+        dumpTierItems("MEDIUM", medium);
+        dumpTierItems("HARD", hard);
+
         emit(new UiState(
                 false, null,
                 new ArrayList<>(allowedTypesEn),
@@ -744,7 +738,8 @@ public class ScaleTrainerViewModel extends ViewModel {
                 -1,
                 0,
                 0d,
-                PracticeState.IDLE
+                PracticeState.IDLE,
+                easy, medium, hard
         ));
     }
 
@@ -763,7 +758,10 @@ public class ScaleTrainerViewModel extends ViewModel {
                 (selectedTypeEn != null && selectedRoot != null) ? (selectedRoot + " " + selectedTypeEn) : "",
                 old.scaleNotes,
                 new ArrayList<>(plannedPath),
-                currentIndex, streak, progress, state
+                currentIndex, streak, progress, state,
+                easyItemsCache != null ? new ArrayList<>(easyItemsCache) : Collections.emptyList(),
+                mediumItemsCache != null ? new ArrayList<>(mediumItemsCache) : Collections.emptyList(),
+                hardItemsCache != null ? new ArrayList<>(hardItemsCache) : Collections.emptyList()
         ));
     }
 
@@ -795,7 +793,10 @@ public class ScaleTrainerViewModel extends ViewModel {
                 title,
                 scaleNotes,
                 new ArrayList<>(plannedPath),
-                currentIndex, streak, progress, state
+                currentIndex, streak, progress, state,
+                easyItemsCache != null ? new ArrayList<>(easyItemsCache) : Collections.emptyList(),
+                mediumItemsCache != null ? new ArrayList<>(mediumItemsCache) : Collections.emptyList(),
+                hardItemsCache != null ? new ArrayList<>(hardItemsCache) : Collections.emptyList()
         ));
     }
 
@@ -827,7 +828,10 @@ public class ScaleTrainerViewModel extends ViewModel {
                 title,
                 scaleNotes,
                 new ArrayList<>(plannedPath),
-                currentIndex, streak, progress, state
+                currentIndex, streak, progress, state,
+                easyItemsCache != null ? new ArrayList<>(easyItemsCache) : Collections.emptyList(),
+                mediumItemsCache != null ? new ArrayList<>(mediumItemsCache) : Collections.emptyList(),
+                hardItemsCache != null ? new ArrayList<>(hardItemsCache) : Collections.emptyList()
         ));
     }
 
@@ -864,67 +868,97 @@ public class ScaleTrainerViewModel extends ViewModel {
         return out;
     }
 
-    // ===== Mapeo EN ↔ ES =====
-    private String mapEnglishTypeToDbName(String english) {
-        if (english == null) return "";
-        String e = english.trim().toLowerCase(Locale.ROOT);
-        HashMap<String,String> m = new HashMap<>();
+    // ===== UI helpers =====
 
-        m.put("major pentatonic", "Pentatónica mayor");
-        m.put("minor pentatonic", "Pentatónica menor");
-        m.put("blues",            "Blues");
-
-        m.put("ionian",           "Mayor");
-        m.put("major",            "Mayor");
-
-        m.put("aeolian",          "Menor natural");
-        m.put("natural minor",    "Menor natural");
-        m.put("minor",            "Menor natural");
-
-        m.put("dorian",           "Dórica");
-        m.put("mixolydian",       "Mixolidia");
-        m.put("lydian",           "Lidia");
-        m.put("phrygian",         "Frigia");
-        m.put("locrian",          "Locria");
-
-        m.put("phrygian dominant","Frigia dominante");
-        m.put("double harmonic major", "Doble armónica mayor");
-
-        m.put("harmonic minor",   "Menor armónica");
-        m.put("melodic minor (asc)", "Menor melódica");
-        m.put("melodic minor",    "Menor melódica");
-
-        String db = m.get(e);
-        return db != null ? db : english;
+    /** Nombre legible del tier (el que se DESBLOQUEA). */
+    private String tierNameEs(int tier) {
+        switch (tier) {
+            case 0: return "FÁCIL";
+            case 1: return "MEDIA";
+            case 2: return "DIFÍCIL";
+            default: return "";
+        }
     }
 
-    /** Inverso ES → EN para chequear patrones en PatternRepository. */
-    private String mapDbNameToEnglishType(String es) {
-        if (es == null) return "";
-        String s = es.trim().toLowerCase(Locale.ROOT);
-        HashMap<String,String> inv = new HashMap<>();
+    /**
+     * Recalcula en IO las listas por tier para la root seleccionada,
+     * con fallback cuando no hay tonalidad en BD (muestra listas con progreso=0),
+     * y mapeando a la base física de la BD.
+     */
+    private void recomputeTierSectionCaches(long v) {
+        if (v != selectionVersion) return;
+        String root = selectedRoot;
+        if (root == null) {
+            easyItemsCache = mediumItemsCache = hardItemsCache = Collections.emptyList();
+            return;
+        }
+        long tonalityId = progressionRepo.findTonalityIdByName(root);
 
-        inv.put("pentatónica mayor", "major pentatonic");
-        inv.put("pentatónica menor", "minor pentatonic");
-        inv.put("blues",             "blues");
+        int maxCompletedTier;
+        if (tonalityId <= 0) {
+            Log.w(TAG, "recomputeTierSectionCaches -> tonalityId no encontrado para root=" + root + ". Fallback sin gating (listas visibles, progreso=0).");
+            maxCompletedTier = -1; // nada completado
+        } else {
+            maxCompletedTier = computeMaxCompletedTierForRoot_OFFSET(currentUserId, tonalityId, root);
+        }
 
-        inv.put("mayor",             "major");
-        inv.put("menor natural",     "natural minor");
+        boolean easyUnlocked   = true;
+        boolean mediumUnlocked = (maxCompletedTier >= 0);
+        boolean hardUnlocked   = (maxCompletedTier >= 1);
 
-        inv.put("dórica",            "dorian");
-        inv.put("mixolidia",         "mixolydian");
-        inv.put("lidia",             "lydian");
-        inv.put("frigia",            "phrygian");
-        inv.put("locria",            "locrian");
+        // Construcción de items usando tier físico
+        easyItemsCache   = progressionCalc.buildTierItemsFor(0 + dbTierBase, root, tonalityId, easyUnlocked,   currentUserId);
+        mediumItemsCache = progressionCalc.buildTierItemsFor(1 + dbTierBase, root, tonalityId, mediumUnlocked, currentUserId);
+        hardItemsCache   = progressionCalc.buildTierItemsFor(2 + dbTierBase, root, tonalityId, hardUnlocked,   currentUserId);
 
-        inv.put("frigia dominante",  "phrygian dominant");
-        inv.put("doble armónica mayor", "double harmonic major");
+        // Logs de catálogo y patrones
+        int catT0 = safeSize(progressionRepo.getScalesByTier(0 + dbTierBase));
+        int catT1 = safeSize(progressionRepo.getScalesByTier(1 + dbTierBase));
+        int catT2 = safeSize(progressionRepo.getScalesByTier(2 + dbTierBase));
+        Log.d(TAG, "CAT Tier counts (physical) -> base=" + dbTierBase + " T0=" + catT0 + " T1=" + catT1 + " T2=" + catT2);
 
-        inv.put("menor armónica",    "harmonic minor");
-        inv.put("menor melódica",    "melodic minor");
+        int v0 = countVariantsForTierRoot(0 + dbTierBase, root);
+        int v1 = countVariantsForTierRoot(1 + dbTierBase, root);
+        int v2 = countVariantsForTierRoot(2 + dbTierBase, root);
+        Log.d(TAG, "PATTERN variants for root " + root + " (physical tiers) -> T0=" + v0 + " T1=" + v1 + " T2=" + v2);
 
-        String en = inv.get(s);
-        return en != null ? en : es;
+        dumpTierItems("EASY(build)", easyItemsCache);
+        dumpTierItems("MEDIUM(build)", mediumItemsCache);
+        dumpTierItems("HARD(build)", hardItemsCache);
+    }
+
+    // ===== Offset / detección de base de tier =====
+
+    /** Detecta si la BD está 0-based (0/1/2) o 1-based (1/2/3). */
+    private void detectDbTierBase() {
+        boolean has0 = hasAnyScaleInPhysicalTier(0);
+        boolean has1 = hasAnyScaleInPhysicalTier(1);
+        if (!has0 && has1) {
+            dbTierBase = 1;
+        } else {
+            dbTierBase = 0;
+        }
+        Log.d(TAG, "detectDbTierBase -> hasT0=" + has0 + " hasT1=" + has1 + " => dbTierBase=" + dbTierBase);
+    }
+
+    private boolean hasAnyScaleInPhysicalTier(int physicalTier) {
+        try {
+            return progressionRepo.hasAnyScaleInTier(physicalTier);
+        } catch (Throwable t) {
+            Log.e(TAG, "hasAnyScaleInPhysicalTier(" + physicalTier + ") error: " + t.getMessage(), t);
+            return false;
+        }
+    }
+
+    /** Igual que ScaleProgressionCalculator.computeMaxCompletedTierForRoot pero con offset de BD. */
+    private int computeMaxCompletedTierForRoot_OFFSET(long userId, long tonalityId, @NonNull String root) {
+        int logical = 0, lastCompleted = -1;
+        while (hasAnyScaleInPhysicalTier(logical + dbTierBase) &&
+                progressionCalc.isTierCompletedForRoot(userId, logical + dbTierBase, tonalityId, root)) {
+            lastCompleted = logical;
+            logical++;
+        }
+        return lastCompleted;
     }
 
     // ===== Utils =====
@@ -953,5 +987,38 @@ public class ScaleTrainerViewModel extends ViewModel {
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    private int safeSize(@Nullable List<?> list) { return list == null ? 0 : list.size(); }
+
+    private int countVariantsForTierRoot(int physicalTier, @NonNull String root) {
+        int total = 0;
+        List<ScaleEntity> scales = progressionRepo.getScalesByTier(physicalTier);
+        if (scales != null) {
+            for (ScaleEntity s : scales) {
+                String en = ScaleTypeMapper.mapDbNameToEnglishType(s.name);
+                total += nonNull(patternRepo.getVariantsByTypeAndRoot(en, root)).size();
+            }
+        }
+        return total;
+    }
+
+    private void dumpTierItems(String label, @Nullable List<ScaleProgressionCalculator.TierItem> items) {
+        if (items == null) {
+            Log.d(TAG, "dump " + label + " -> null");
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("dump ").append(label).append(" (").append(items.size()).append(")\n");
+        for (ScaleProgressionCalculator.TierItem it : items) {
+            sb.append(" • ")
+                    .append(it.typeEs).append(" / ").append(it.typeEn)
+                    .append(" | unlocked=").append(it.unlocked)
+                    .append(" hasPatterns=").append(it.hasPatterns)
+                    .append(" boxes=").append(it.completedBoxes).append("/").append(it.totalBoxes)
+                    .append(" completed=").append(it.completed)
+                    .append("\n");
+        }
+        Log.d(TAG, sb.toString());
     }
 }

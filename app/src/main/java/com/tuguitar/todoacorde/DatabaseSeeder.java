@@ -164,6 +164,9 @@ public final class DatabaseSeeder {
                                 : detectScaleType(it.scaleDegrees);
                         if (st == null || st.isEmpty()) continue;
 
+                        // 🔁 Normaliza alias/tipos a la forma canónica
+                        st = normalizeScaleTypeAlias(st);
+
                         int diff = (it.difficulty != null && it.difficulty >= 1)
                                 ? it.difficulty
                                 : defaultDifficultyForScaleType(st);
@@ -181,14 +184,29 @@ public final class DatabaseSeeder {
         // Fallback opcional: añade tipos comunes si no vinieran en el JSON
         if (ADD_COMMON_FALLBACK_SCALES) {
             Map<String,Integer> fb = new LinkedHashMap<>();
-            fb.put("Pentatonic Major", 2);
-            fb.put("Pentatonic Minor", 2);
-            fb.put("Blues",            2);
-            fb.put("Mixolydian",       3);
-            fb.put("Lydian",           4);
-            fb.put("Locrian",          5);
+            // ✅ Fallbacks alineados con nuestra política de dificultad
+            fb.put("Phrygian",               1);
+            fb.put("Phrygian Dominant",      1);
+            fb.put("Major Pentatonic",       1);
+            fb.put("Minor Pentatonic",       1);
+
+            fb.put("Ionian",                 2);
+            fb.put("Aeolian",                2);
+            fb.put("Dorian",                 2);
+            fb.put("Mixolydian",             2);
+            fb.put("Harmonic Minor",         2);
+            fb.put("Blues",                  2);
+
+            fb.put("Lydian",                 4);
+            fb.put("Double Harmonic Major",  4);
+            fb.put("Spanish 8-Tone",         4);
+
+            fb.put("Melodic Minor (Asc)",    5);
+            fb.put("Locrian",                5);
+
             for (Map.Entry<String,Integer> e : fb.entrySet()) {
-                typeToDifficulty.putIfAbsent(e.getKey(), e.getValue());
+                String canon = normalizeScaleTypeAlias(e.getKey());
+                typeToDifficulty.putIfAbsent(canon, e.getValue());
             }
         }
 
@@ -390,6 +408,7 @@ public final class DatabaseSeeder {
                     String scaleType = (item.scaleType != null && !item.scaleType.trim().isEmpty())
                             ? item.scaleType.trim()
                             : detectScaleType(item.scaleDegrees);
+                    scaleType = normalizeScaleTypeAlias(scaleType);
 
                     // 2) Tónica (a sostenidos)
                     String root = toSharp(item.root);
@@ -677,6 +696,40 @@ public final class DatabaseSeeder {
         return w;
     }
 
+    // ----- Normalización de alias/tipografías de tipos de escala -----
+    private static String normalizeScaleTypeAlias(String st) {
+        if (st == null) return "Scale";
+        String k = st.trim().toLowerCase(Locale.ROOT);
+
+        // Typos y variaciones evidentes
+        if (k.equals("ionion")) return "Ionian";
+
+        // Flamenco / Frigio mayor (alias)
+        if (k.equals("flamenco mode (major-phrygian)")
+                || k.equals("flamenco mode")
+                || k.equals("major-phrygian")
+                || k.equals("major phrygian")
+                || k.equals("spanish phrygian")
+                || k.equals("phrygian dominant (flamenco)")) {
+            return "Phrygian Dominant";
+        }
+
+        // Pentatónicas (orden de palabras)
+        if (k.equals("pentatonic major") || k.equals("major pentatonic")) return "Major Pentatonic";
+        if (k.equals("pentatonic minor") || k.equals("minor pentatonic")) return "Minor Pentatonic";
+
+        // Spanish 8-Tone (guiones y espacios)
+        if (k.equals("spanish 8 tone") || k.equals("spanish 8-tone")) return "Spanish 8-Tone";
+
+        // Melodic minor (formas)
+        if (k.equals("melodic minor (asc)") || k.equals("melodic minor asc") || k.equals("melodic minor")) {
+            return "Melodic Minor (Asc)";
+        }
+
+        // Resto: capitaliza primera letra
+        return st.substring(0,1).toUpperCase(Locale.ROOT) + st.substring(1);
+    }
+
     // ----- POJOs JSON de escalas -----
     private static final class RepoFile {
         @SerializedName("version")    String version;
@@ -779,8 +832,12 @@ public final class DatabaseSeeder {
             case "double harmonic major": return "Doble armónica mayor";
             case "spanish 8-tone": return "Española 8 tonos";
             case "flamenco mode (major-phrygian)": return "Modo flamenco (Mayor-Frigio)";
-            case "pentatonic major": return "Pentatónica mayor";
-            case "pentatonic minor": return "Pentatónica menor";
+            case "pentatonic major":
+            case "major pentatonic":
+                return "Pentatónica mayor";
+            case "pentatonic minor":
+            case "minor pentatonic":
+                return "Pentatónica menor";
             case "blues": return "Blues";
             default:
                 // Por si el JSON trae otro nombre no mapeado, usa tal cual con mayúscula inicial
@@ -794,32 +851,34 @@ public final class DatabaseSeeder {
         String key = st.trim().toLowerCase(Locale.ROOT);
         switch (key) {
             // Muy básicas
-            case "ionian":
-            case "aeolian":
-            case "phrygian":
-                return 1;
+            case "phrygian":                 return 1;
+            case "phrygian dominant":        return 1;
+            case "major pentatonic":
+            case "pentatonic major":         return 1;
+            case "minor pentatonic":
+            case "pentatonic minor":         return 1;
 
             // Intermedias
-            case "phrygian dominant":
-            case "harmonic minor":
-            case "dorian":
-            case "mixolydian":
+            case "ionian":                   return 2;
+            case "aeolian":                  return 2;
+            case "dorian":                   return 2;
+            case "mixolydian":               return 2;
+            case "harmonic minor":           return 2;
+            case "blues":                    return 2;
             case "flamenco mode (major-phrygian)":
-            case "pentatonic major":
-            case "pentatonic minor":
-            case "blues":
-                return 2;
+                // Alias antiguo → tratamos como Phrygian Dominant (fácil)
+                return 1;
 
             // Avanzadas
-            case "lydian":
-            case "double harmonic major":
-            case "spanish 8-tone":
-                return 4;
+            case "lydian":                   return 4;
+            case "double harmonic major":    return 4;
+            case "spanish 8 tone":
+            case "spanish 8-tone":           return 4;
 
             // Muy avanzadas
-            case "locrian":
+            case "locrian":                  return 5;
             case "melodic minor (asc)":
-                return 5;
+            case "melodic minor":            return 5;
 
             default:
                 return 3;

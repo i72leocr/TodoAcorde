@@ -133,22 +133,22 @@ public abstract class todoAcordeDatabase extends RoomDatabase {
                                         });
                                     });
                                 }
-//                                @Override
-//                                public void onOpen(@NonNull SupportSQLiteDatabase db) {
-//                                    super.onOpen(db);
-//                                    Log.i("DB_SEED", "onOpen: limpiando y resembrando base");
-//                                    databaseWriteExecutor.execute(() -> {
-//                                        INSTANCE.runInTransaction(() -> {
-//                                            try {
-//                                                INSTANCE.clearAllTables();
-//                                                DatabaseSeeder.seed(INSTANCE, ctx);
-//                                                Log.i("DB_SEED", "onOpen: seed COMPLETADO");
-//                                            } catch (Exception e) {
-//                                                Log.e("DB_SEED", "onOpen: seed FALLÓ", e);
-//                                            }
-//                                        });
-//                                    });
-//                                }
+                                @Override
+                                public void onOpen(@NonNull SupportSQLiteDatabase db) {
+                                    super.onOpen(db);
+                                    Log.i("DB_SEED", "onOpen: limpiando y resembrando base");
+                                    databaseWriteExecutor.execute(() -> {
+                                        INSTANCE.runInTransaction(() -> {
+                                            try {
+                                                INSTANCE.clearAllTables();
+                                                DatabaseSeeder.seed(INSTANCE, ctx);
+                                                Log.i("DB_SEED", "onOpen: seed COMPLETADO");
+                                            } catch (Exception e) {
+                                                Log.e("DB_SEED", "onOpen: seed FALLÓ", e);
+                                            }
+                                        });
+                                    });
+                                }
                             })
                             .build();
                     // (código de apertura forzada omitido por brevedad)
