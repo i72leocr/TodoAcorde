@@ -1,4 +1,4 @@
-package com.tuguitar.todoacorde.achievements.domain.usecases;
+package com.tuguitar.todoacorde.achievements.domain.usecase;
 
 import javax.inject.Inject;
 import java.util.ArrayList;

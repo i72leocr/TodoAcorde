@@ -1,4 +1,4 @@
-package com.tuguitar.todoacorde.achievements.domain.usecases;
+package com.tuguitar.todoacorde.achievements.domain.usecase;
 
 import com.tuguitar.todoacorde.EvaluateAchievementUseCase;
 
@@ -15,7 +15,9 @@ public class AchievementUseCaseRegistry {
     private static final List<EvaluateAchievementUseCase> registered = new ArrayList<>();
 
     public static void register(EvaluateAchievementUseCase useCase) {
-        registered.add(useCase);
+        if (useCase != null) {
+            registered.add(useCase);
+        }
     }
 
     public static List<EvaluateAchievementUseCase> getAll() {

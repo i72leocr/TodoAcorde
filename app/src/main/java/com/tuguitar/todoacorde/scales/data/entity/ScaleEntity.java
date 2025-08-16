@@ -17,4 +17,9 @@ public class ScaleEntity {
 
     public String name;   // p.ej. "Mayor", "Frigia", etc.
     public int tier;      // 0 = fácil, 1 = intermedio, 2 = difícil...
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

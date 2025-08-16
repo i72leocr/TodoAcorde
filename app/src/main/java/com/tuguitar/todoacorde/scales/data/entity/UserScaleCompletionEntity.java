@@ -5,12 +5,14 @@ import androidx.room.ForeignKey;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
+import com.tuguitar.todoacorde.User;
+
 @Entity(
         tableName = "UserScaleCompletion",
         foreignKeys = {
                 @ForeignKey(entity = ScaleEntity.class, parentColumns = "id", childColumns = "scaleId", onDelete = ForeignKey.CASCADE),
-                @ForeignKey(entity = TonalityEntity.class, parentColumns = "id", childColumns = "tonalityId", onDelete = ForeignKey.CASCADE)
-                // Nota: userId referencia a tu tabla de usuarios si la tienes en Room. Si no, mantenlo como long simple.
+                @ForeignKey(entity = TonalityEntity.class, parentColumns = "id", childColumns = "tonalityId", onDelete = ForeignKey.CASCADE),
+                @ForeignKey(entity = User.class, parentColumns = "id", childColumns = "userId", onDelete = ForeignKey.CASCADE)
         },
         indices = {
                 @Index(value = {"userId", "scaleId", "tonalityId", "boxOrder"}, unique = true),
@@ -26,6 +28,6 @@ public class UserScaleCompletionEntity {
     public long userId;
     public long scaleId;
     public long tonalityId;
-    public int boxOrder;         // caja completada
-    public long completedAtUtc;  // epoch millis
+    public int boxOrder;         // número de caja completada (1..N)
+    public long completedAtUtc;  // timestamp de finalización (epoch millis)
 }

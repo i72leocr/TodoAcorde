@@ -13,4 +13,16 @@
     <!-- Fondo transparente para el plate del SearchView -->
     <color name="search_plate_bg">#00000000</color>
     <!-- Otros colores globales ya definidos -->
+    <!-- Scale Trainer: colores locales -->
+    <color name="st_sheet_bg">#FFFFFFFF</color>
+    <color name="st_sheet_handle">#C4C4C4</color>
+
+    <color name="st_header_bg">#9E9E9E</color>
+    <color name="st_header_text">#FFFFFFFF</color>
+    <color name="st_divider">#DDDDDD</color>
+    <color name="st_card_unlocked_bg">#FFFFFFFF</color>
+    <color name="st_card_locked_bg">#F0F0F0</color>
+    <color name="st_card_completed_bg">#DFF6DD</color>
+    <color name="st_card_stroke">#E0E0E0</color>
+    <color name="st_card_text">#000000</color>
 </resources>

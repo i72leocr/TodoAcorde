@@ -12,5 +12,10 @@ public class TonalityEntity {
     @PrimaryKey(autoGenerate = true)
     public long id;
 
-    public String name; // "C", "C#", "D", ... o tu criterio
+    public String name; // "C", "C#", "D", ... según notación de notas
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.os.Build;
 
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
@@ -15,6 +16,7 @@ import com.tuguitar.todoacorde.scales.data.NoteUtils;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.List;
 
 public class PitchInputController {
 
@@ -35,6 +37,10 @@ public class PitchInputController {
     private AudioRecord recorder;
     private Thread worker;
     private volatile boolean running = false;
+
+    // ---- TEST FEED (nuevo) ----
+    private Thread testThread;
+    private volatile boolean feeding = false;
 
     // ---- Estabilización / calidad ----
     private static final double RMS_DB_GATE = -45.0;
@@ -65,8 +71,16 @@ public class PitchInputController {
         }
     }
 
+    // =======================
+    // Modo MIC (real)
+    // =======================
     @MainThread
-    public void start() {
+    public void start() { startMic(); }
+
+    @MainThread
+    public void startMic() {
+        cancelAutoFeed(); // si estuviera en test, lo paramos
+
         if (!hasMicPermission()) {
             if (listener != null) listener.onPermissionDenied();
             return;
@@ -77,15 +91,20 @@ public class PitchInputController {
                 SR, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         int recBuf = Math.max(minBuf, FRAME_SIZE * 2);
 
+        // Fuente de audio más cruda posible
+        int source = (Build.VERSION.SDK_INT >= 24)
+                ? MediaRecorder.AudioSource.UNPROCESSED
+                : MediaRecorder.AudioSource.MIC;
+
         recorder = new AudioRecord(
-                MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                source,
                 SR,
                 AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
                 recBuf
         );
         if (recorder.getState() != AudioRecord.STATE_INITIALIZED) {
-            recorder.release();
+            try { recorder.release(); } catch (Throwable ignore) {}
             recorder = null;
             if (listener != null) listener.onPermissionDenied();
             return;
@@ -99,8 +118,65 @@ public class PitchInputController {
         worker.start();
     }
 
+    // =======================
+    // Modo TEST (auto feed)
+    // =======================
+    /**
+     * Emite las notas dadas como si fueran detecciones estables (en orden).
+     * No requiere permiso de micro. Llama a onStableNote y, opcionalmente,
+     * a onStablePitch con frecuencia ficticia (omitida).
+     *
+     * @param noteNames Lista de nombres de nota (con o sin octava). Se normalizan a sostenidos.
+     * @param delayMs   Retardo entre notas (p.ej. 60–120 ms para completar rápido).
+     */
+    @MainThread
+    public void startAutoFeed(@NonNull List<String> noteNames, long delayMs) {
+        // Para evitar solaparse con el mic
+        stopMic();
+        cancelAutoFeed();
+
+        feeding = true;
+        testThread = new Thread(() -> {
+            try {
+                for (String raw : noteNames) {
+                    if (!feeding) break;
+                    String n = NoteUtils.normalizeToSharp(NoteUtils.stripOctave(raw));
+                    if (listener != null) {
+                        // centsOff = 0 para “perfecto”
+                        listener.onStableNote(n, 0.0);
+                        // onStablePitch es opcional; si quieres emitir algo:
+                        // listener.onStablePitch(n, 0.0, 0.0);
+                    }
+                    try { Thread.sleep(Math.max(0, delayMs)); } catch (InterruptedException ie) { break; }
+                }
+            } finally {
+                feeding = false;
+                testThread = null;
+            }
+        }, "PitchTestFeeder");
+        testThread.start();
+    }
+
+    @MainThread
+    public void cancelAutoFeed() {
+        feeding = false;
+        if (testThread != null) {
+            try { testThread.join(200); } catch (InterruptedException ignore) {}
+            testThread = null;
+        }
+    }
+
     @MainThread
     public void stop() {
+        cancelAutoFeed();
+        stopMic();
+        history.clear();
+    }
+
+    // =======================
+    // Internos MIC
+    // =======================
+    private void stopMic() {
         running = false;
         if (worker != null) {
             try { worker.join(300); } catch (InterruptedException ignore) {}
@@ -108,10 +184,9 @@ public class PitchInputController {
         }
         if (recorder != null) {
             try { recorder.stop(); } catch (Throwable ignore) {}
-            recorder.release();
+            try { recorder.release(); } catch (Throwable ignore) {}
             recorder = null;
         }
-        history.clear();
     }
 
     private boolean hasMicPermission() {
@@ -119,9 +194,6 @@ public class PitchInputController {
                 == PackageManager.PERMISSION_GRANTED;
     }
 
-    // =======================
-    // Bucle principal
-    // =======================
     private void loop() {
         short[] in = new short[HOP_SIZE];
         float[] frame = new float[FRAME_SIZE];
@@ -131,14 +203,13 @@ public class PitchInputController {
             int n = recorder.read(in, 0, in.length);
             if (n <= 0) continue;
 
-            int overflow = Math.max(0, filled + n - FRAME_SIZE);
-            if (overflow > 0) {
-                // desplazar a la izquierda lo que sobre
-                int remain = filled - overflow;
-                if (remain > 0) System.arraycopy(frame, overflow, frame, 0, remain);
+            // Desplazar ventana por HOP, manteniendo FRAME_SIZE
+            int neededShift = Math.max(0, filled + n - FRAME_SIZE);
+            if (neededShift > 0) {
+                int remain = filled - neededShift;
+                if (remain > 0) System.arraycopy(frame, neededShift, frame, 0, remain);
                 filled = Math.max(0, remain);
             }
-            // copiar muestras
             int canCopy = Math.min(n, FRAME_SIZE - filled);
             for (int i = 0; i < canCopy; i++) {
                 frame[filled + i] = in[i] / 32768f;
@@ -146,7 +217,6 @@ public class PitchInputController {
             filled = Math.min(FRAME_SIZE, filled + canCopy);
 
             if (filled < FRAME_SIZE) continue;
-
             analyzeFrame(frame);
         }
     }

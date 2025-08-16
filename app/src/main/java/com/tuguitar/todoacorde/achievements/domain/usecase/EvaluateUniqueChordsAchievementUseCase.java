@@ -1,4 +1,4 @@
-package com.tuguitar.todoacorde.achievements.domain.usecases;
+package com.tuguitar.todoacorde.achievements.domain.usecase;
 
 import com.tuguitar.todoacorde.achievements.data.Achievement;
 import com.tuguitar.todoacorde.achievements.data.AchievementDao;
