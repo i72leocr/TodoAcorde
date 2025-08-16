@@ -1,4 +1,4 @@
-package com.tuguitar.todoacorde.achievements.domain.usecases;
+package com.tuguitar.todoacorde.achievements.domain.usecase;
 
 import com.tuguitar.todoacorde.AppExecutors;
 import com.tuguitar.todoacorde.SessionManager;

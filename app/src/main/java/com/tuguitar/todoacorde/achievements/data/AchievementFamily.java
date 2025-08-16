@@ -80,4 +80,103 @@ public final class AchievementFamily {
                 ", levels="       + levels +
                 '}';
     }
+
+    // =============================================================================================
+    // FAMILIAS PREDEFINIDAS: MAESTRÍA DE ESCALAS (por tonalidad y por todas las tonalidades)
+    // Mapeo de dificultad esperado por tier:
+    //   tier = 0 → Fácil (Bronce) | tier = 1 → Media (Plata) | tier ≥ 2 → Difícil (Oro)
+    // =============================================================================================
+
+    public static final class ScaleMasteryTitles {
+        private ScaleMasteryTitles() {}
+
+        // Por TONALIDAD (completar todas las cajas de una escala en una tonalidad)
+        public static final String EASY_PER_TONALITY    = "Escalas fáciles (por tonalidad)";
+        public static final String MEDIUM_PER_TONALITY  = "Escalas medias (por tonalidad)";
+        public static final String HARD_PER_TONALITY    = "Escalas difíciles (por tonalidad)";
+
+        // En TODAS las tonalidades (completar todas las cajas de una escala en TODAS las tonalidades)
+        public static final String EASY_ALL_TONALITIES   = "Escalas fáciles (todas las tonalidades)";
+        public static final String MEDIUM_ALL_TONALITIES = "Escalas medias (todas las tonalidades)";
+        public static final String HARD_ALL_TONALITIES   = "Escalas difíciles (todas las tonalidades)";
+    }
+
+    public static final class ScaleMasteryDescriptions {
+        private ScaleMasteryDescriptions() {}
+
+        // Por TONALIDAD
+        public static final String EASY_PER_TONALITY =
+                "Completa una escala de dificultad fácil (todas sus cajas) en una tonalidad.";
+        public static final String MEDIUM_PER_TONALITY =
+                "Completa una escala de dificultad media (todas sus cajas) en una tonalidad.";
+        public static final String HARD_PER_TONALITY =
+                "Completa una escala de dificultad difícil (todas sus cajas) en una tonalidad.";
+
+        // En TODAS las tonalidades
+        public static final String EASY_ALL_TONALITIES =
+                "Completa una escala de dificultad fácil (todas sus cajas) en todas las tonalidades.";
+        public static final String MEDIUM_ALL_TONALITIES =
+                "Completa una escala de dificultad media (todas sus cajas) en todas las tonalidades.";
+        public static final String HARD_ALL_TONALITIES =
+                "Completa una escala de dificultad difícil (todas sus cajas) en todas las tonalidades.";
+    }
+
+    // =============================================================================================
+    // FACTORY METHODS para construir rápidamente las familias con sus títulos/descr. estándar
+    // (El seeder definirá los umbrales de BRONCE/PLATA/ORO en AchievementEntity / DB)
+    // =============================================================================================
+
+    /** Escalas fáciles por tonalidad. */
+    public static AchievementFamily scalesEasyPerTonality(@NonNull List<Achievement> levels) {
+        return new AchievementFamily(
+                ScaleMasteryTitles.EASY_PER_TONALITY,
+                ScaleMasteryDescriptions.EASY_PER_TONALITY,
+                levels
+        );
+    }
+
+    /** Escalas medias por tonalidad. */
+    public static AchievementFamily scalesMediumPerTonality(@NonNull List<Achievement> levels) {
+        return new AchievementFamily(
+                ScaleMasteryTitles.MEDIUM_PER_TONALITY,
+                ScaleMasteryDescriptions.MEDIUM_PER_TONALITY,
+                levels
+        );
+    }
+
+    /** Escalas difíciles por tonalidad. */
+    public static AchievementFamily scalesHardPerTonality(@NonNull List<Achievement> levels) {
+        return new AchievementFamily(
+                ScaleMasteryTitles.HARD_PER_TONALITY,
+                ScaleMasteryDescriptions.HARD_PER_TONALITY,
+                levels
+        );
+    }
+
+    /** Escalas fáciles en todas las tonalidades. */
+    public static AchievementFamily scalesEasyAllTonalities(@NonNull List<Achievement> levels) {
+        return new AchievementFamily(
+                ScaleMasteryTitles.EASY_ALL_TONALITIES,
+                ScaleMasteryDescriptions.EASY_ALL_TONALITIES,
+                levels
+        );
+    }
+
+    /** Escalas medias en todas las tonalidades. */
+    public static AchievementFamily scalesMediumAllTonalities(@NonNull List<Achievement> levels) {
+        return new AchievementFamily(
+                ScaleMasteryTitles.MEDIUM_ALL_TONALITIES,
+                ScaleMasteryDescriptions.MEDIUM_ALL_TONALITIES,
+                levels
+        );
+    }
+
+    /** Escalas difíciles en todas las tonalidades. */
+    public static AchievementFamily scalesHardAllTonalities(@NonNull List<Achievement> levels) {
+        return new AchievementFamily(
+                ScaleMasteryTitles.HARD_ALL_TONALITIES,
+                ScaleMasteryDescriptions.HARD_ALL_TONALITIES,
+                levels
+        );
+    }
 }

@@ -19,10 +19,20 @@ import com.tuguitar.todoacorde.songs.data.SongChordDao;
 import com.tuguitar.todoacorde.songs.data.SongDao;
 import com.tuguitar.todoacorde.songs.data.SongLyricDao;
 
-// ✅ IMPORTA el DAO nuevo de escalas
+// ✅ DAO existente de patrones (renderizado de cajas)
 import com.tuguitar.todoacorde.scales.data.ScalePatternDao;
 
-// ✅ IMPORTA Executor
+// ✅ NUEVO: DAOs de progresión de escalas
+import com.tuguitar.todoacorde.scales.data.dao.ScaleDao;
+import com.tuguitar.todoacorde.scales.data.dao.ScaleBoxDao;
+import com.tuguitar.todoacorde.scales.data.dao.TonalityDao;
+import com.tuguitar.todoacorde.scales.data.dao.UserScaleCompletionDao;
+import com.tuguitar.todoacorde.scales.data.dao.ProgressionDao;
+
+// ✅ NUEVO: Repositorio de progresión (opcional para inyección directa)
+import com.tuguitar.todoacorde.scales.domain.repository.ProgressionRepository;
+
+// ✅ IMPORTA Executor para IO
 import java.util.concurrent.Executor;
 
 @Module
@@ -32,33 +42,51 @@ public class DatabaseModule {
     @Provides
     @Singleton
     static todoAcordeDatabase provideDatabase(Application app) {
-        // ✅ Usa TU singleton ya configurado (con sus callbacks/seed internos)
+        // Usa TU singleton ya configurado (con callbacks/seed internos)
         return todoAcordeDatabase.getInstance(app);
     }
 
-    // ✅ Nuevo: Executor para IO (sin @Named) → lo usará el ViewModel
+    // ✅ Executor para IO → reutiliza el pool de la BD (usable en ViewModels)
     @Provides
     @Singleton
     static Executor provideIoExecutor(todoAcordeDatabase db) {
-        // Reutiliza el pool que ya tienes en la BD
         return todoAcordeDatabase.databaseWriteExecutor;
     }
 
     // --- DAOs existentes ---
-    @Provides @Singleton static SongDao provideSongDao(todoAcordeDatabase db)           { return db.songDao(); }
-    @Provides @Singleton static ChordDao provideChordDao(todoAcordeDatabase db)         { return db.chordDao(); }
-    @Provides @Singleton static SongChordDao provideSongChordDao(todoAcordeDatabase db) { return db.songChordDao(); }
-    @Provides @Singleton static SongLyricDao provideSongLyricDao(todoAcordeDatabase db) { return db.songLyricDao(); }
-    @Provides @Singleton static PracticeSessionDao providePracticeSessionDao(todoAcordeDatabase db)       { return db.practiceSessionDao(); }
-    @Provides @Singleton static PracticeDetailDao providePracticeDetailDao(todoAcordeDatabase db)         { return db.practiceDetailDao(); }
-    @Provides @Singleton static SongUserSpeedDao provideSongUserSpeedDao(todoAcordeDatabase db)           { return db.songUserSpeedDao(); }
-    @Provides @Singleton static FavoriteSongDao provideFavoriteSongDao(todoAcordeDatabase db)             { return db.favoriteSongDao(); }
-    @Provides @Singleton static UserDao provideUserDao(todoAcordeDatabase db)                             { return db.userDao(); }
-    @Provides @Singleton static DifficultyDao provideDifficultyDao(todoAcordeDatabase db)                 { return db.difficultyDao(); }
-    @Provides @Singleton static ChordTypeDao provideChordTypeDao(todoAcordeDatabase db)                   { return db.chordTypeDao(); }
+    @Provides @Singleton static SongDao provideSongDao(todoAcordeDatabase db)                 { return db.songDao(); }
+    @Provides @Singleton static ChordDao provideChordDao(todoAcordeDatabase db)               { return db.chordDao(); }
+    @Provides @Singleton static SongChordDao provideSongChordDao(todoAcordeDatabase db)       { return db.songChordDao(); }
+    @Provides @Singleton static SongLyricDao provideSongLyricDao(todoAcordeDatabase db)       { return db.songLyricDao(); }
+    @Provides @Singleton static PracticeSessionDao providePracticeSessionDao(todoAcordeDatabase db) { return db.practiceSessionDao(); }
+    @Provides @Singleton static PracticeDetailDao providePracticeDetailDao(todoAcordeDatabase db)   { return db.practiceDetailDao(); }
+    @Provides @Singleton static SongUserSpeedDao provideSongUserSpeedDao(todoAcordeDatabase db)     { return db.songUserSpeedDao(); }
+    @Provides @Singleton static FavoriteSongDao provideFavoriteSongDao(todoAcordeDatabase db)       { return db.favoriteSongDao(); }
+    @Provides @Singleton static UserDao provideUserDao(todoAcordeDatabase db)                       { return db.userDao(); }
+    @Provides @Singleton static DifficultyDao provideDifficultyDao(todoAcordeDatabase db)           { return db.difficultyDao(); }
+    @Provides @Singleton static ChordTypeDao provideChordTypeDao(todoAcordeDatabase db)             { return db.chordTypeDao(); }
     @Provides @Singleton static AchievementDefinitionDao provideAchievementDefinitionDao(todoAcordeDatabase db) { return db.achievementDefinitionDao(); }
-    @Provides @Singleton static AchievementDao provideAchievementDao(todoAcordeDatabase db)               { return db.achievementDao(); }
+    @Provides @Singleton static AchievementDao provideAchievementDao(todoAcordeDatabase db)         { return db.achievementDao(); }
 
-    // ✅ Nuevo: DAO de patrones de escala
-    @Provides @Singleton static ScalePatternDao provideScalePatternDao(todoAcordeDatabase db)             { return db.scalePatternDao(); }
+    // ✅ DAO de patrones de escala (render)
+    @Provides @Singleton static ScalePatternDao provideScalePatternDao(todoAcordeDatabase db)       { return db.scalePatternDao(); }
+
+    // ✅ DAOs de progresión (desbloqueo)
+    @Provides @Singleton static ScaleDao provideScaleDao(todoAcordeDatabase db)                     { return db.scaleDao(); }
+    @Provides @Singleton static ScaleBoxDao provideScaleBoxDao(todoAcordeDatabase db)               { return db.scaleBoxDao(); }
+    @Provides @Singleton static TonalityDao provideTonalityDao(todoAcordeDatabase db)               { return db.tonalityDao(); }
+    @Provides @Singleton static UserScaleCompletionDao provideUserScaleCompletionDao(todoAcordeDatabase db) { return db.userScaleCompletionDao(); }
+    @Provides @Singleton static ProgressionDao provideProgressionDao(todoAcordeDatabase db)         { return db.progressionDao(); }
+
+    // ✅ Repositorio de progresión (por si quieres inyectarlo en Fragment/ViewModel)
+    @Provides @Singleton
+    static ProgressionRepository provideProgressionRepository(
+            ScaleDao scaleDao,
+            ScaleBoxDao scaleBoxDao,
+            TonalityDao tonalityDao,
+            UserScaleCompletionDao completionDao,
+            ProgressionDao progressionDao
+    ) {
+        return new ProgressionRepository(scaleDao, scaleBoxDao, tonalityDao, completionDao, progressionDao);
+    }
 }

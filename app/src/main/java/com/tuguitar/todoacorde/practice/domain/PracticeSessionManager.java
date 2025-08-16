@@ -6,12 +6,11 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.tuguitar.todoacorde.Chord;
 import com.tuguitar.todoacorde.ChordDetectionListener;
 import com.tuguitar.todoacorde.IChordDetector;
-import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluatePerfectScoreAchievementUseCase;
-import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluateSpeedUnlockAchievementUseCase;
-import com.tuguitar.todoacorde.achievements.domain.usecases.EvaluateUniqueChordsAchievementUseCase;
+import com.tuguitar.todoacorde.achievements.domain.usecase.EvaluatePerfectScoreAchievementUseCase;
+import com.tuguitar.todoacorde.achievements.domain.usecase.EvaluateSpeedUnlockAchievementUseCase;
+import com.tuguitar.todoacorde.achievements.domain.usecase.EvaluateUniqueChordsAchievementUseCase;
 import com.tuguitar.todoacorde.songs.data.SongChordWithInfo;
 import com.tuguitar.todoacorde.practice.data.PracticeDetail;
 import com.tuguitar.todoacorde.practice.data.PracticeRepository;

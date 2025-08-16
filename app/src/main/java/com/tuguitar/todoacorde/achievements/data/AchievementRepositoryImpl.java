@@ -4,7 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 
-import com.tuguitar.todoacorde.achievements.domain.usecases.AchievementUseCaseRegistry;
+import com.tuguitar.todoacorde.achievements.domain.usecase.AchievementUseCaseRegistry;
 import com.tuguitar.todoacorde.EvaluateAchievementUseCase;
 import com.tuguitar.todoacorde.FamilyId;
 import com.tuguitar.todoacorde.SessionManager;
@@ -12,6 +12,7 @@ import com.tuguitar.todoacorde.SessionManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale; // <-- añadido
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -70,7 +71,6 @@ public class AchievementRepositoryImpl implements AchievementRepository {
         });
     }
 
-    // Método para batch update de logros
     @Override
     public void updateAchievements(@NonNull List<Achievement> achievements) {
         ioExecutor.execute(() -> {
@@ -97,7 +97,6 @@ public class AchievementRepositoryImpl implements AchievementRepository {
 
     @Override
     public void evaluateAll() {
-        // Ejecuta todos los UseCases registrados
         ioExecutor.execute(() -> {
             for (EvaluateAchievementUseCase useCase : AchievementUseCaseRegistry.getAll()) {
                 useCase.evaluate();
@@ -105,10 +104,71 @@ public class AchievementRepositoryImpl implements AchievementRepository {
         });
     }
 
-    // legacy: si alguna parte aún llama a slugify directamente podrías delegar aquí.
-    // private String slugify(String input) {
-    //     return FamilyId.of(input).asString();
-    // }
+    /**
+     * Incrementa el progreso:
+     *  - Familias "milestone" (threshold=1 por nivel): solo incrementa el primer nivel NO completado (BRONZE→SILVER→GOLD).
+     *  - Resto (legacy): incrementa todos los niveles a la vez (mismo contador con umbrales crecientes).
+     *
+     * El parámetro puede ser un familyId directo (recomendado) o un título (legacy con espacios).
+     */
+    @Override
+    public void incrementProgress(@NonNull String familyIdOrTitle, int delta) {
+        // Si parece título (tiene espacios), usamos FamilyId.of(...).asString().
+        // Si no tiene espacios, lo tomamos como familyId directo (ideal para los nuevos milestones).
+        final String familyId = familyIdOrTitle.contains(" ")
+                ? FamilyId.of(familyIdOrTitle).asString()
+                : familyIdOrTitle.toLowerCase(Locale.ROOT);
+
+        ioExecutor.execute(() -> {
+            // Identificar si es una familia "milestone" (las que creaste en el seeder)
+            boolean isMilestone =
+                    "scales_one_tonality_milestone".equalsIgnoreCase(familyId) ||
+                            "scales_all_tonalities_milestone".equalsIgnoreCase(familyId);
+
+            if (isMilestone) {
+                // Política "milestone": avanzar SOLO el primer nivel no completado, clamp 0..1
+                Achievement.Level[] order = new Achievement.Level[] {
+                        Achievement.Level.BRONZE,
+                        Achievement.Level.SILVER,
+                        Achievement.Level.GOLD
+                };
+                for (Achievement.Level level : order) {
+                    AchievementEntity current = achievementDao.getByFamilyAndLevel(familyId, level);
+                    int prev = (current != null) ? current.getProgress() : 0;
+
+                    // Threshold de milestones en tu seeder = 1. Clampeamos a 0..1
+                    if (prev < 1) {
+                        int next = prev + delta;
+                        if (next < 0) next = 0;
+                        if (next > 1) next = 1;
+
+                        AchievementEntity updated = AchievementEntity.fromDomain(
+                                familyId,
+                                level,
+                                next
+                        );
+                        achievementDao.upsert(updated);
+                        // Solo avanzamos un nivel por llamada
+                        break;
+                    }
+                }
+            } else {
+                // Política legacy (mismo contador en los 3 niveles, umbrales crecientes)
+                for (Achievement.Level level : Achievement.Level.values()) {
+                    AchievementEntity current = achievementDao.getByFamilyAndLevel(familyId, level);
+                    int prev = (current != null) ? current.getProgress() : 0;
+                    int next = Math.max(0, prev + delta);
+
+                    AchievementEntity updated = AchievementEntity.fromDomain(
+                            familyId,
+                            level,
+                            next
+                    );
+                    achievementDao.upsert(updated);
+                }
+            }
+        });
+    }
 
     private void combine(
             List<AchievementDefinitionEntity> defs,
