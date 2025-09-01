@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+        AppTheme SIN ActionBar + edge-to-edge.
+        - Cambié el parent a NoActionBar para ocultar la barra superior.
+        - Hice status/navigation bar transparentes.
+        - Iconos de status/navigation bar en oscuro (útil si el fondo es claro).
+        Si usas fondos oscuros por defecto, cambia windowLightStatusBar a false.
+    -->
+    <style name="AppTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Paleta (la tuya) -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryVariant">@color/colorPrimaryDark</item>
+        <item name="colorOnPrimary">@color/white</item>
+
+        <item name="colorSecondary">@color/colorAccent</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Para que los componentes Material usen tu paleta -->
+        <item name="materialButtonStyle">@style/Widget.MaterialComponents.Button</item>
+
+        <!-- 🔵 Edge-to-Edge -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <!-- Opcional si tienes notch/pantallas con recorte -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+
+    <!-- Apariencia de las pestañas (tal cual la tenías) -->
+    <style name="TabTextAppearance" parent="TextAppearance.Design.Tab">
+        <item name="fontFamily">@font/roboto_mono_medium</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <!-- Tema AppCompat de compatibilidad (lo dejo igual por si alguna Activity vieja lo usa).
+         Si quisieras también sin ActionBar aquí, cambia el parent a Theme.AppCompat.Light.NoActionBar. -->
+    <style name="AppTheme.AppCompat" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+
+
+    <!-- Estilo de texto para tus líneas de práctica (sin cambios) -->
+    <style name="PracticeLineText">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:autoSizeTextType">uniform</item>
+        <item name="android:autoSizeMinTextSize">8sp</item>
+        <item name="android:autoSizeMaxTextSize">20sp</item>
+        <item name="android:autoSizeStepGranularity">1sp</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textColor">@android:color/black</item>
+    </style>
+
+</resources>
