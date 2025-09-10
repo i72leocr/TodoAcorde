@@ -1,0 +1,24 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Fondo completo visible: rojo -> verde -> rojo -->
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#F44336"
+                android:centerColor="#4CAF50"
+                android:endColor="#F44336"
+                android:centerX="0.5"
+                android:angle="0"/>
+            <corners android:radius="6dp"/>
+        </shape>
+    </item>
+
+    <!-- Capa del progreso (opcional, semitransparente para verlo encima si quieres marcar) -->
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape android:shape="rectangle">
+                <solid android:color="@android:color/transparent"/>
+                <corners android:radius="6dp"/>
+            </shape>
+        </clip>
+    </item>
+</layer-list>

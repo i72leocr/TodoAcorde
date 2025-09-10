@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:fontFamily="sans-serif">
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginVertical="16dp"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#F5F5F5"
+        app:cardUseCompatPadding="false"
+        app:cardPreventCornerOverlap="true">
+
+        <SearchView
+            android:id="@+id/searchView"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:queryHint="Busca artistas o canciones"
+            android:iconifiedByDefault="false"
+            android:background="@null"
+            app:queryBackground="@null"
+            app:iconifiedByDefault="false"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:fontFamily="sans-serif"
+            android:textStyle="bold" />
+    </androidx.cardview.widget.CardView>
+</merge>

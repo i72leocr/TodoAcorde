@@ -1,0 +1,14 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Fondo verde redondeado -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#B7E77A"/>
+            <corners android:radius="22dp"/>
+        </shape>
+    </item>
+    <!-- Flecha vector alineada a la derecha -->
+    <item
+        android:drawable="@drawable/ic_spinner_arrow"
+        android:right="12dp"
+        android:gravity="right|center_vertical" />
+</layer-list>

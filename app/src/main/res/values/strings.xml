@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">TuGuitar</string>
+    <string name="menu_description">Menú</string>
+    <string-array name="practice_modes">
+        <item>Modo Libre</item>
+        <item>Modo Sincronizado</item>
+    </string-array>
+
+    <string-array name="practice_difficulties">
+        <item>Suave</item>
+        <item>Moderada</item>
+        <item>Normal</item>
+    </string-array>
+</resources>

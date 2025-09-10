@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <!-- Icono de medalla (Bronce/Plata/Oro) -->
+    <ImageView
+        android:id="@+id/ivMedal"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_marginEnd="8dp"
+        android:contentDescription="Medalla nivel"
+        android:src="@drawable/ic_medal_bronze" />
+
+    <!-- Barra de progreso reducida -->
+    <ProgressBar
+        android:id="@+id/progSubAchievement"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="@dimen/prog_sub_height"
+        android:max="100"
+        android:progress="0"
+        android:progressDrawable="@drawable/progress_gradient"
+        android:indeterminateOnly="false"
+        android:layout_marginEnd="8dp" />
+
+    <!-- Valor numérico -->
+    <TextView
+        android:id="@+id/tvSubValue"
+        android:layout_width="48dp"
+        android:layout_height="wrap_content"
+        android:text="0 / 10"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:gravity="end|center_vertical"
+        android:singleLine="true"
+        android:ellipsize="none"/>
+</LinearLayout>

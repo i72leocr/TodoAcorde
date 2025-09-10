@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/fragment_song_details_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- **********************
+         ESTE ES TU LAYOUT ORIGINAL,
+         TODO DENTRO DE UN SOLO LinearLayout
+         ********************** -->
+    <LinearLayout
+        android:id="@+id/fragment_song_details_root"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp"
+        tools:context=".practice.ui.PracticeChordsOptimizedFragment">
+
+        <!-- SONG HEADER -->
+        <LinearLayout
+            android:id="@+id/song_header_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="24dp"
+            android:paddingBottom="16dp">
+
+            <TextView
+                android:id="@+id/song_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Canción de ejemplo"
+                android:textColor="@android:color/black"
+                android:textSize="24sp"
+                android:fontFamily="sans-serif"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/song_author"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Autor de ejemplo"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif"
+                android:textStyle="normal" />
+        </LinearLayout>
+
+        <!-- MAIN CONTENT -->
+        <LinearLayout
+            android:id="@+id/main_content_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.6"
+            android:orientation="horizontal"
+            android:layout_marginBottom="4dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerLyricsChords"
+                android:layout_width="0dp"
+                android:paddingTop="8dp"
+                android:layout_height="match_parent"
+                android:layout_weight="3"
+                tools:listitem="@layout/item_lyric_chord"
+                android:fadingEdge="vertical"
+                android:fadingEdgeLength="16dp"
+                android:requiresFadingEdge="vertical"/>
+
+            <!-- RIGHT COLUMN -->
+            <LinearLayout
+                android:id="@+id/diagram_right_column"
+                android:layout_width="85dp"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:layout_marginStart="8dp">
+
+                <!-- DIAGRAM BLOCK -->
+                <LinearLayout
+                    android:id="@+id/diagram_block"
+                    android:layout_width="match_parent"
+                    android:layout_height="329dp"
+                    android:orientation="vertical"
+                    android:gravity="top|center_horizontal"
+                    android:paddingTop="40dp">
+
+                    <TextView
+                        android:id="@+id/tvCurrentChordName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="Am"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif" />
+
+                    <com.todoacorde.todoacorde.practice.ui.GridWithPointsView
+                        android:id="@+id/gridWithPointsView"
+                        android:layout_width="match_parent"
+                        android:layout_height="110dp"
+                        android:background="@android:color/white" />
+
+                    <ProgressBar
+                        android:id="@+id/progressBar"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvCountdown"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:textColor="@android:color/holo_red_dark"
+                        android:textSize="100sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif"
+                        android:shadowColor="#80000000"
+                        android:shadowRadius="4"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <!-- arriba: espacio flexible -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <!-- contenedor que centra el checkbox+icono -->
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical">
+
+                    <LinearLayout
+                        android:id="@+id/checkbox_container"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <CheckBox
+                            android:id="@+id/cbMetronome"
+                            android:layout_width="23dp"
+                            android:layout_height="26dp"
+                            android:padding="0dp"
+                            android:text="" />
+
+                        <ImageView
+                            android:id="@+id/ivMetronomeIcon"
+                            android:layout_width="52dp"
+                            android:layout_height="52dp"
+                            android:layout_marginStart="2dp"
+                            android:adjustViewBounds="true"
+                            android:scaleType="centerInside"
+                            android:src="@drawable/ic_metronome" />
+                    </LinearLayout>
+                </FrameLayout>
+
+                <!-- abajo: espacio flexible -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <!-- PUNTAJES -->
+                <LinearLayout
+                    android:id="@+id/score_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="end"
+                    android:layout_marginBottom="40dp">
+
+                    <TextView
+                        android:id="@+id/tvBestScore"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="left"
+                        android:text="Mejor Puntaje: 100"
+                        android:textColor="@android:color/black"
+                        android:textSize="13sp"
+                        android:fontFamily="sans-serif" />
+
+                    <TextView
+                        android:id="@+id/tvLastScore"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="left"
+                        android:text="Último Puntaje: 100"
+                        android:textColor="@android:color/black"
+                        android:textSize="11sp"
+                        android:fontFamily="sans-serif" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- BOTTOM CONTROLS -->
+        <LinearLayout
+            android:id="@+id/controls_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
+
+            <Switch
+                android:id="@+id/switchMode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sincronizado"
+                android:textSize="14sp"
+                android:fontFamily="sans-serif" />
+
+            <Spinner
+                android:id="@+id/spinnerSpeed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:entries="@array/speed_options"
+                android:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+                />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <Button
+                android:id="@+id/btnStartStopPractice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif"
+                android:minEms="8"
+                android:paddingLeft="0dp"
+                android:paddingRight="0dp"
+                android:text="EMPEZAR"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- MICRÓFONO, sólo visible en práctica activa -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnMic"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:fabSize="mini"
+        app:fabCustomSize="32dp"
+        app:maxImageSize="20dp"
+        app:srcCompat="@drawable/ic_mic"
+        app:backgroundTint="@color/primary"
+        android:layout_gravity="top|start"
+        android:layout_margin="16dp"
+        android:visibility="gone"/>
+</FrameLayout>

@@ -1,0 +1,10 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/sort_by_title_asc"
+        android:title="Title ↑"/>
+    <item android:id="@+id/sort_by_title_desc"
+        android:title="Title ↓"/>
+    <item android:id="@+id/sort_by_difficulty_asc"
+        android:title="Difficulty ↑"/>
+    <item android:id="@+id/sort_by_difficulty_desc"
+        android:title="Difficulty ↓"/>
+</menu>

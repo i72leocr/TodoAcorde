@@ -1,0 +1,7 @@
+<!-- res/drawable/bg_tuning_bar_rounded.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="8dp"/>
+    <solid android:color="@color/color_background_nav"/>
+    <!-- Aquí podrías añadir <size android:height="16dp"/> o segmentos para progreso/inactivo -->
+</shape>

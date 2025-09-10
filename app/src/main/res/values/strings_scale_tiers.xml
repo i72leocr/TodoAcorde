@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Botón del fragment -->
+    <string name="explorar_escalas">Explorar escalas</string>
+
+    <!-- Cabeceras / diálogo -->
+    <string name="escalas_por_dificultad">Escalas por dificultad</string>
+    <string name="cerrar">Cerrar</string>
+
+    <!-- Para compatibilidad con el layout antiguo (si aún lo tienes en el proyecto) -->
+    <string name="drag_handle">Arrastrar</string>
+
+    <!-- Secciones -->
+    <string name="difficulty_easy">FÁCILES</string>
+    <string name="difficulty_medium">MEDIAS</string>
+    <string name="difficulty_hard">DIFÍCILES</string>
+
+    <!-- Vacíos -->
+    <string name="no_scales_in_difficulty">— Sin escalas en esta dificultad —</string>
+</resources>

@@ -1,0 +1,28 @@
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="custom_color">#FF5722</color>
+    <color name="green">#4CAF50</color>  <!-- Verde -->
+    <color name="red">#F44336</color>    <!-- Rojo -->
+    <color name="black">#000000</color>  <!-- Negro -->
+    <color name="color_background_nav">#EEEEEE</color> <!-- Gris claro -->
+    <color name="primary">#3F51B5</color>
+    <color name="white">#FFFFFF</color>
+    <color name="purple">#3F51B5</color>
+    <!-- Fondo transparente para el plate del SearchView -->
+    <color name="search_plate_bg">#00000000</color>
+    <!-- Otros colores globales ya definidos -->
+    <!-- Scale Trainer: colores locales -->
+    <color name="st_sheet_bg">#FFFFFFFF</color>
+    <color name="st_sheet_handle">#C4C4C4</color>
+
+    <color name="st_header_bg">#9E9E9E</color>
+    <color name="st_header_text">#FFFFFFFF</color>
+    <color name="st_divider">#DDDDDD</color>
+    <color name="st_card_unlocked_bg">#FFFFFFFF</color>
+    <color name="st_card_locked_bg">#F0F0F0</color>
+    <color name="st_card_completed_bg">#DFF6DD</color>
+    <color name="st_card_stroke">#E0E0E0</color>
+    <color name="st_card_text">#000000</color>
+</resources>

@@ -1,0 +1,22 @@
+[
+  {
+    "typeName": "M",
+    "description": "Acorde mayor"
+  },
+  {
+    "typeName": "m",
+    "description": "Acorde menor"
+  },
+  {
+    "typeName": "D",
+    "description": "Acorde dominante"
+  },
+  {
+    "typeName": "m7",
+    "description": "Acorde menor séptima"
+  },
+  {
+    "typeName": "M7",
+    "description": "Acorde mayor séptima"
+  }
+]

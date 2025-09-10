@@ -1,0 +1,28 @@
+<!-- item_lyric_chord.xml -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="0dp">
+
+    <TextView
+        android:id="@+id/tvChordLine"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:textSize="14sp"
+        android:includeFontPadding="false"
+        android:padding="0dp"
+        android:lineSpacingExtra="0dp"
+        android:letterSpacing="0"
+        android:textIsSelectable="false"
+        android:textAllCaps="false"/>
+
+    <TextView
+        android:id="@+id/tvLyricLine"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:textSize="14sp"
+        android:layout_marginTop="2dp"/>
+</LinearLayout>

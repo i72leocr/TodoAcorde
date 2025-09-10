@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Usa tu tema base AppTheme pero en modo pantalla completa/edge-to-edge -->
+    <style name="Theme.TodoAcorde.EdgeToEdge" parent="AppTheme">
+        <!-- Dibuja por debajo de la barra de estado y navegación -->
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+
+        <!-- Colores transparentes para que no aparezca “la franja” oscura -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <!-- Permite usar el área del notch / recortes -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+
+        <!-- En APIs antiguas oculta la status bar desde tema (fallback).
+             En APIs nuevas usaremos el modo inmersivo por código. -->
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+</resources>

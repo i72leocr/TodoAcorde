@@ -1,0 +1,11 @@
+<resources>
+    <!-- Hint para el SearchView -->
+    <string name="search_hint">Buscar canción</string>
+    <!-- Texto para filtro de favoritos (en la cabecera) -->
+    <string name="filter_favorites">Sólo favoritos</string>
+    <!-- Etiquetas de ordenación (cabecera) -->
+    <string name="sort_title_asc">Título (ASC)</string>
+    <string name="sort_title_desc">Título (DESC)</string>
+    <string name="sort_diff_asc">Dificultad (ASC)</string>
+    <string name="sort_diff_desc">Dificultad (DESC)</string>
+</resources>

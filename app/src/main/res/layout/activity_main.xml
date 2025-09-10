@@ -1,0 +1,25 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Display de la frecuencia detectada, centrado en el medio -->
+    <TextView
+        android:id="@+id/frequencyDisplay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0.00 Hz"
+        android:textSize="48sp"
+        android:layout_centerInParent="true"
+        android:layout_marginBottom="20dp" />
+
+    <!-- Botón de Start/Stop, centrado horizontalmente y debajo del TextView -->
+    <Button
+        android:id="@+id/btnStartStop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Start"
+        android:layout_below="@id/frequencyDisplay"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp" />
+
+</RelativeLayout>

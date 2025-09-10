@@ -1,0 +1,14 @@
+[
+  {
+    "difficultyLevel": "baja",
+    "description": "Nivel de dificultad bajo"
+  },
+  {
+    "difficultyLevel": "media",
+    "description": "Nivel de dificultad medio"
+  },
+  {
+    "difficultyLevel": "alta",
+    "description": "Nivel de dificultad alto"
+  }
+]

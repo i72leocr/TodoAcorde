@@ -1,0 +1,15 @@
+<!-- res/drawable/tuning_thumb_green.xml -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@android:color/transparent"/>
+            <size android:width="20dp" android:height="20dp"/>
+        </shape>
+    </item>
+    <item android:right="1dp">
+        <shape android:shape="oval">
+            <solid android:color="@color/red"/> <!-- Cambiado a verde -->
+            <size android:width="18dp" android:height="18dp"/>
+        </shape>
+    </item>
+</layer-list>

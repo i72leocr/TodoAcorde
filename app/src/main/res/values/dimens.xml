@@ -1,0 +1,18 @@
+<resources>
+    <!-- Define the dimensions for the dialog -->
+    <dimen name="dialog_width">150dp</dimen>
+    <dimen name="dialog_height">150dp</dimen>
+    <dimen name="prog_sub_height">8dp</dimen>
+    <dimen name="prog_main_height">14dp</dimen>
+
+
+    <dimen name="st_sheet_corner_radius">16dp</dimen>
+    <dimen name="st_sheet_elevation">8dp</dimen>
+    <dimen name="st_card_radius">12dp</dimen>
+    <dimen name="st_card_padding">12dp</dimen>
+    <dimen name="st_handle_width">36dp</dimen>
+    <dimen name="st_handle_height">4dp</dimen>
+    <dimen name="st_handle_margin">8dp</dimen>
+    <dimen name="st_divider_thickness">1dp</dimen>
+
+</resources>
