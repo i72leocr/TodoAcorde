@@ -5,7 +5,7 @@
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_tuguitar_todoacorde_FFT_performFFT(JNIEnv *env, jclass clazz, jfloatArray signal, jfloatArray real, jfloatArray imag) {
+Java_com_todoacorde_todoacorde_FFT_performFFT(JNIEnv *env, jclass clazz, jfloatArray signal, jfloatArray real, jfloatArray imag) {
     int n = env->GetArrayLength(signal);
     jfloat* signalArray = env->GetFloatArrayElements(signal, nullptr);
     jfloat* realArray = env->GetFloatArrayElements(real, nullptr);

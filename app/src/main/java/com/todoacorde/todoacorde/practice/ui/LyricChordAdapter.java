@@ -198,7 +198,7 @@ public class LyricChordAdapter extends ListAdapter<LineItem, LyricChordAdapter.V
             if (gIdx == activeChordGlobalIndex) {
                 spannable.setSpan(new StyleSpan(Typeface.BOLD),
                         span.start, span.end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                spannable.setSpan(new ForegroundColorSpan(Color.parseColor("#FFA500")),
+                spannable.setSpan(new ForegroundColorSpan(Color.parseColor("#3E2723")),
                         span.start, span.end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
 

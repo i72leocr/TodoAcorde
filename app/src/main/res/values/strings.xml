@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TuGuitar</string>
+    <string name="app_name">TodoAcorde</string>
     <string name="menu_description">Menú</string>
     <string-array name="practice_modes">
         <item>Modo Libre</item>
